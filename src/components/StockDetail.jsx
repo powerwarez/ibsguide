@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStocks, getTransactionsByStockId } from '../db';
 import TransactionList from './TransactionList';
@@ -9,25 +9,48 @@ const StockDetail = () => {
   const [stock, setStock] = useState(null);
   const [totalQuantity, setTotalQuantity] = useState(0);
   const [averagePrice, setAveragePrice] = useState(0);
+  const isLoaded = useRef(false); // 초기 로딩 여부 추적
 
-  const loadStockData = async () => {
+  const loadStockData = useCallback(async () => {
     const storedStocks = await getStocks();
     const foundStock = storedStocks.find(stock => stock.id === id);
     setStock(foundStock);
-
-    // 거래 내역을 불러와서 보유 수량 및 평균가 계산
-    const stockTransactions = await getTransactionsByStockId(id);
-    const initialQuantity = stockTransactions.reduce((acc, txn) => acc + txn.quantity, 0);
-    const initialAveragePrice = initialQuantity > 0
-      ? stockTransactions.reduce((acc, txn) => acc + txn.price * txn.quantity, 0) / initialQuantity
-      : 0;
-    setTotalQuantity(initialQuantity);
-    setAveragePrice(initialAveragePrice);
-  };
+  
+    // 거래 내역을 timestamp 기준으로 오름차순 정렬
+    const stockTransactions = (await getTransactionsByStockId(id)).sort((a, b) => a.timestamp - b.timestamp);
+  
+    let totalQuantity = 0;
+    let averagePrice = 0;
+  
+    // 매수 및 매도에 따른 평균가와 총 수량 계산
+    stockTransactions.forEach(txn => {
+      if (txn.type === '매수') {
+        const newPurchaseAmount = txn.price * txn.quantity;
+        const newTotalQuantity = totalQuantity + txn.quantity;
+  
+        // 새 평균가 계산
+        averagePrice = ((averagePrice * totalQuantity) + newPurchaseAmount) / newTotalQuantity;
+  
+        // 총 수량 업데이트
+        totalQuantity = newTotalQuantity;
+      } else if (txn.type === '매도') {
+        // 매도인 경우: 수량만 감소, 평균가는 유지
+        totalQuantity += txn.quantity; // 매도는 음수로 들어옴
+      }
+    });
+  
+    setTotalQuantity(totalQuantity);
+    setAveragePrice(averagePrice);
+  }, [id]);
 
   useEffect(() => {
-    loadStockData();
-  }, [id]);
+    // 초기 로딩 시 한 번만 loadStockData 호출
+    if (!isLoaded.current) {
+      loadStockData();
+      isLoaded.current = true; // 로딩 완료 후 true로 설정
+    }
+  }, [loadStockData]);
+
 
   if (!stock) {
     return <p>해당 종목을 찾을 수 없습니다.</p>;
@@ -52,7 +75,7 @@ const StockDetail = () => {
     setAveragePrice(newAveragePrice);
 
     // DB에 직접 저장하지 않고 데이터만 다시 로드
-    await loadStockData();
+    // await loadStockData();
   };
 
   return (
