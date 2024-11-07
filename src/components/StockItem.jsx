@@ -1,41 +1,61 @@
 import React from 'react';
-import { FaTrash } from 'react-icons/fa'; // 휴지통 아이콘 불러오기
-import { useNavigate } from 'react-router-dom'; // useNavigate 가져오기
+import { FaTrash } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const StockItem = ({ stock, onDelete }) => {
-  const navigate = useNavigate(); // 페이지 이동을 위한 useNavigate
+  const navigate = useNavigate();
+
+  // 비율 계산 (investment 대비 보유 자산 비율)
+  const investedValue = stock.averagePrice * stock.quantity;
+  const valueT = investedValue / stock.perTradeAmount
+  const roundedInvestedPercentage = Math.ceil(valueT * 10) / 10; // 소수 둘째 자리에서 올림
 
   // StockItem 클릭 시 세부 페이지로 이동
   const handleItemClick = () => {
-    navigate(`/stock-detail/${stock.id}`); // stock.id를 기반으로 세부 페이지로 이동
+    navigate(`/stock-detail/${stock.id}`);
   };
 
   // 삭제 버튼 클릭 시
   const handleDelete = (e) => {
-    e.stopPropagation(); // 부모 요소의 클릭 이벤트 방지 (세부 페이지 이동 막기)
+    e.stopPropagation();
     if (window.confirm('이 종목을 삭제하시겠습니까?')) {
-      onDelete(stock.id); // 삭제 핸들러 호출
+      onDelete(stock.id);
     }
   };
 
   return (
     <div
       className="p-4 bg-gray-100 rounded-lg shadow-md flex justify-between items-center cursor-pointer hover:bg-gray-200"
-      onClick={handleItemClick} // 클릭 시 세부 페이지로 이동
+      onClick={handleItemClick}
     >
       <div>
         <h2 className="text-xl font-semibold">{stock.name} (v{stock.version})</h2>
         <p>투자 금액: ${stock.investment}</p>
+        <p>목표 수익률: {stock.profitGoal}%</p>
         <p>1회 매수금: ${stock.perTradeAmount.toFixed(2)}</p>
-        <p className={stock.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-          투자 손익: ${stock.profit}
+        <p>
+          투자 손익: <span className={stock.profit >= 0 ? 'text-red-600' : 'text-blue-600'}>${stock.profit}</span>
         </p>
+
+        {/* 투자 비율 Progress Bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-sm text-gray-700 mb-1">
+            <span>T값: {roundedInvestedPercentage>0? roundedInvestedPercentage:0} </span>
+          </div>
+          <div className="w-full bg-gray-300 rounded h-4 overflow-hidden">
+            <div
+              style={{ width: `${roundedInvestedPercentage}%` }}
+              className="h-full bg-green-500"
+            ></div>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">보유 자산: ${investedValue.toFixed(2)>0? investedValue.toFixed(2):0} / 총 투자: ${stock.investment}</p>
+        </div>
       </div>
 
       {/* 휴지통 아이콘 */}
       <div 
         className="text-red-500 cursor-pointer flex justify-center items-center w-10 h-10 bg-red-100 rounded-full" 
-        onClick={handleDelete} // 삭제 처리
+        onClick={handleDelete}
       >
         <FaTrash className="text-2xl" />
       </div>

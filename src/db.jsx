@@ -80,3 +80,18 @@ export async function deleteTransaction(id) {
   const db = await dbPromise;
   await db.delete('transactions', id);
 }
+
+// 특정 stock 데이터 업데이트
+export async function updateStock(stockId, updatedData) {
+  const db = await dbPromise;
+  const tx = db.transaction('stocks', 'readwrite');
+  const store = tx.objectStore('stocks');
+
+  // 기존 stock 데이터를 가져와 필요한 필드만 업데이트
+  const stock = await store.get(stockId);
+  if (stock) {
+    const updatedStock = { ...stock, ...updatedData };
+    await store.put(updatedStock);
+  }
+  await tx.done;
+}

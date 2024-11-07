@@ -5,14 +5,16 @@ const AddStock = ({ onAdd }) => {
   const [name, setName] = useState('TQQQ'); // 종목명
   const [version, setVersion] = useState('2.2'); // 투자 버전 선택
   const [investment, setInvestment] = useState(0); // 투자 금액
-  const [profit, setProfit] = useState(0); // 수익률
+  const [profitGoal, setProfitGoal] = useState(0); // 수익률
   const [divisionCount, setDivisionCount] = useState(1); // 분할 횟수
   const [perTradeAmount, setPerTradeAmount] = useState(0); // 1회 매수금
+  const [profit, setProfit] = useState(0);
 
   // 투자 금액과 분할 횟수에 따라 1회 매수금을 계산
   useEffect(() => {
     if (divisionCount > 0) {
       setPerTradeAmount(investment / divisionCount);
+      setProfit(0);
     }
   }, [investment, divisionCount]);
 
@@ -25,8 +27,9 @@ const AddStock = ({ onAdd }) => {
       name, 
       version, 
       investment: parseFloat(investment), // 숫자로 변환
-      profit: parseFloat(profit), // 숫자로 변환
+      profitGoal: parseFloat(profitGoal), // 숫자로 변환
       divisionCount: parseInt(divisionCount), // 숫자로 변환
+      profit: parseFloat(profit),
       perTradeAmount 
     };
     
@@ -97,8 +100,8 @@ const AddStock = ({ onAdd }) => {
       <label className="block mb-2">수익률 (%):</label>
       <input
         type="number"
-        value={profit}
-        onChange={(e) => setProfit(e.target.value)}
+        value={profitGoal}
+        onChange={(e) => setProfitGoal(e.target.value)}
         className="block w-full mb-4 p-2 border rounded"
       />
 
