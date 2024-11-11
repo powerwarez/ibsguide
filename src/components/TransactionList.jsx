@@ -1,11 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { addTransaction, getTransactionsByStockId } from '../db';
+import { addTransaction, getTransactionsByStockId, deleteTransaction } from '../db';
 
 const generateUniqueId = () => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-const TransactionList = ({ stockId, onAddTransaction }) => {
+// 삭제 확인 모달 컴포넌트
+const DeleteModal = ({ transaction, onDeleteConfirm, onCancel }) => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+      <div className="bg-white rounded-lg p-6 w-80 shadow-lg">
+        <h2 className="text-xl font-semibold mb-4">거래 삭제 확인</h2>
+        <p className="mb-2">정말로 이 거래를 삭제하시겠습니까?</p>
+        <p className="text-sm text-gray-700">거래 유형: {transaction.type}</p>
+        <p className="text-sm text-gray-700">날짜: {transaction.date}</p>
+        <p className="text-sm text-gray-700">가격: ${transaction.price}</p>
+        <p className="text-sm text-gray-700">수량: {Math.abs(transaction.quantity)}</p>
+        <p className="text-sm text-gray-700">수수료: ${transaction.fee}</p>
+        <div className="mt-4 flex justify-end space-x-2">
+          <button
+            onClick={onCancel}
+            className="bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => onDeleteConfirm(transaction.id)}
+            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => {
   const [transactions, setTransactions] = useState([]);
   const [isBuying, setIsBuying] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
@@ -15,38 +46,44 @@ const TransactionList = ({ stockId, onAddTransaction }) => {
     quantity: '',
     fee: '',
   });
+  const [transactionToDelete, setTransactionToDelete] = useState(null); // 삭제할 트랜잭션 저장
 
   const loadTransactions = useCallback(async () => {
     const storedTransactions = await getTransactionsByStockId(stockId);
     const sortedTransactions = storedTransactions.sort((a, b) => b.timestamp - a.timestamp);
     setTransactions(sortedTransactions);
-  }, [stockId]); // stockId가 변경될 때만 함수가 다시 생성됨
+  }, [stockId]);
 
-  // 초기 로드
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
 
-  // 매수, 매도 입력 처리
   const handleTransactionSubmit = async (type) => {
     try {
       const newQuantity = type === '매도' ? -Math.abs(transactionInput.quantity) : parseInt(transactionInput.quantity, 10);
+      const inputDate = new Date(transactionInput.date);
+      const currentTime = new Date();
+      const timestamp = new Date(
+        inputDate.getFullYear(),
+        inputDate.getMonth(),
+        inputDate.getDate(),
+        currentTime.getHours(),
+        currentTime.getMinutes(),
+        currentTime.getSeconds()
+      ).getTime();
+
       const newTransaction = {
         ...transactionInput,
-        id: generateUniqueId(), // timestamp 대신 고유 ID 사용
+        id: generateUniqueId(),
         quantity: newQuantity,
         type,
-        timestamp: Date.now(),
+        timestamp,
         stockId
       };
 
-      // IndexedDB에 거래 내역 저장
       await addTransaction(stockId, newTransaction);
-      
-      // 낙관적 업데이트: UI를 즉시 업데이트
       setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
 
-      // 입력 폼 초기화
       setTransactionInput({
         date: new Date().toISOString().slice(0, 10),
         price: '',
@@ -56,14 +93,10 @@ const TransactionList = ({ stockId, onAddTransaction }) => {
       setIsBuying(false);
       setIsSelling(false);
 
-      // DB에서 다시 로드하여 데이터 동기화
       await loadTransactions();
-
-      // 부모 컴포넌트에 새로운 거래 전달
-      onAddTransaction(newTransaction);
+      onAddTransaction();
     } catch (error) {
       console.error('거래 추가 중 오류 발생:', error);
-      // 에러 발생 시 다시 로드하여 상태 복구
       await loadTransactions();
     }
   };
@@ -79,8 +112,34 @@ const TransactionList = ({ stockId, onAddTransaction }) => {
     setIsSelling(false);
   };
 
+  // 삭제 버튼 클릭 시 모달 표시
+  const handleDeleteClick = (transaction) => {
+    setTransactionToDelete(transaction);
+  };
+
+  // 모달에서 삭제 확인 시 실행되는 함수
+  const handleDeleteConfirm = async (transactionId) => {
+    await deleteTransaction(transactionId);
+    setTransactions(prevTransactions => prevTransactions.filter(txn => txn.id !== transactionId));
+    onDeleteTransaction();
+    setTransactionToDelete(null); // 모달 닫기
+  };
+
+  const handleDeleteCancel = () => {
+    setTransactionToDelete(null); // 모달 닫기
+  };
+
   return (
     <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
+      {/* 삭제 모달 표시 */}
+      {transactionToDelete && (
+        <DeleteModal
+          transaction={transactionToDelete}
+          onDeleteConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
+      )}
+
       {/* 거래 입력 폼 (매수/매도) */}
       {(isBuying || isSelling) && (
         <div className="mb-6">
@@ -151,6 +210,7 @@ const TransactionList = ({ stockId, onAddTransaction }) => {
               <th className="p-2 border">체결가</th>
               <th className="p-2 border">수량</th>
               <th className="p-2 border">수수료</th>
+              <th className="p-2 border">삭제</th>
             </tr>
           </thead>
           <tbody>
@@ -164,6 +224,14 @@ const TransactionList = ({ stockId, onAddTransaction }) => {
                 <td className="p-2 border">${transaction.price}</td>
                 <td className="p-2 border">{Math.abs(transaction.quantity)}</td>
                 <td className="p-2 border">${transaction.fee}</td>
+                <td className="p-2 border text-center">
+                  <button
+                    onClick={() => handleDeleteClick(transaction)}
+                    className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  >
+                    X
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

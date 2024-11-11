@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStocks, getTransactionsByStockId, updateStock } from '../db';
 import TransactionList from './TransactionList';
@@ -9,8 +9,7 @@ const StockDetail = () => {
   const [stock, setStock] = useState(null);
   const [totalQuantity, setTotalQuantity] = useState(0);
   const [averagePrice, setAveragePrice] = useState(0);
-  const [perstar, setPerstar] = useState(0); // perstar 상태 추가
-  const isLoaded = useRef(false);
+  const [perstar, setPerstar] = useState(0);
 
   // 데이터 로드 및 초기 계산
   const loadStockData = useCallback(async () => {
@@ -29,7 +28,6 @@ const StockDetail = () => {
         if (txn.type === '매수') {
           const newPurchaseAmount = txn.price * txn.quantity;
           const newTotalQuantity = totalQuantity + txn.quantity;
-
           averagePrice = ((averagePrice * totalQuantity) + newPurchaseAmount) / newTotalQuantity;
           totalQuantity = newTotalQuantity;
         } else if (txn.type === '매도') {
@@ -38,7 +36,7 @@ const StockDetail = () => {
           totalQuantity += txn.quantity;
         }
       });
-  
+
       setTotalQuantity(totalQuantity);
       setAveragePrice(averagePrice);
       setStock(prevStock => ({
@@ -46,68 +44,29 @@ const StockDetail = () => {
         profit: totalProfit,
       }));
 
+      const valueT = Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100;
+      const perstarValue = foundStock.profitGoal - (foundStock.profitGoal / 10) * valueT;
+      setPerstar(perstarValue.toFixed(1));
+
       await updateStock(id, {
         quantity: totalQuantity,
         averagePrice: averagePrice,
         profit: totalProfit,
       });
-
-      // `perstar` 계산 추가 (소수 둘째 자리 올림)
-      const valueT = Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100;
-      const perstarValue = foundStock.profitGoal - (foundStock.profitGoal / 10) * valueT;
-      setPerstar(perstarValue.toFixed(1)); // 소수 첫째 자리까지만 표시
-
-
     }
   }, [id]);
 
   useEffect(() => {
-    if (!isLoaded.current) {
-      loadStockData();
-      isLoaded.current = true;
-    }
+    loadStockData();
   }, [loadStockData]);
 
   if (!stock) {
     return <p>해당 종목을 찾을 수 없습니다.</p>;
   }
 
-  // TransactionList에서 새 거래가 추가된 후 호출될 핸들러
-  const handleAddTransaction = async (newTransaction) => {
-    const newQuantity = parseInt(newTransaction.quantity, 10);
-    const newPrice = parseFloat(newTransaction.price);
-
-    let newTotalQuantity = totalQuantity;
-    let newAveragePrice = averagePrice;
-    let newProfit = stock.profit;
-
-    if (newTransaction.type === '매수') {
-      newTotalQuantity += newQuantity;
-      newAveragePrice = ((averagePrice * totalQuantity) + (newPrice * newQuantity)) / newTotalQuantity;
-    } else if (newTransaction.type === '매도') {
-      newTotalQuantity += newQuantity; // 매도는 이미 음수로 들어옴
-      const profitAmount = (newPrice - averagePrice) * Math.abs(newQuantity);
-      newProfit += profitAmount;
-    }
-
-    setTotalQuantity(newTotalQuantity);
-    setAveragePrice(newAveragePrice);
-    setStock(prevStock => ({
-      ...prevStock,
-      profit: newProfit,
-    }));
-
-    // `perstar` 업데이트
-    const valueT = Math.ceil((newAveragePrice * newTotalQuantity / stock.perTradeAmount) * 100) / 100;
-    const perstarValue = stock.profitGoal - (stock.profitGoal / 10) * valueT;
-    setPerstar(perstarValue.toFixed(1));
-
-    // DB에 업데이트된 데이터 반영
-    await updateStock(id, {
-      quantity: newTotalQuantity,
-      averagePrice: newAveragePrice,
-      profit: newProfit,
-    });
+  // TransactionList에서 트랜잭션 변경 시 호출할 핸들러
+  const handleTransactionUpdate = () => {
+    loadStockData();
   };
 
   return (
@@ -128,14 +87,14 @@ const StockDetail = () => {
       </div>
       <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
         <h2 className="text-2xl font-semibold" style={{ color: "red" }}>매수 가이드</h2>
-        <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount/averagePrice/2).toFixed(2)}</p>
-        <p>매수 별지점 {perstar}%: {(averagePrice*(1+perstar/100)).toFixed(2)} X {(stock.perTradeAmount/averagePrice/2).toFixed(2)}</p>
+        <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount/averagePrice/2).toFixed(0)}</p>
+        <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)-0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100)-0.01).toFixed(2)/2).toFixed(0)}</p>
         <br />
         <h2 className="text-2xl font-semibold" style={{ color: "blue" }}>매도 가이드</h2>
-        <p>매도 LOC:</p>
-        <p>매도 After지정: </p>
+        <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}</p>
+        <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal/100))).toFixed(2)} X {(totalQuantity-(totalQuantity / 4).toFixed(0)).toFixed(0)}</p>
       </div>
-      <TransactionList stockId={id} onAddTransaction={handleAddTransaction} />
+      <TransactionList stockId={id} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
     </div>
   );
 };
