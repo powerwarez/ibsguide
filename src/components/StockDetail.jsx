@@ -10,8 +10,8 @@ const StockDetail = () => {
   const [totalQuantity, setTotalQuantity] = useState(0);
   const [averagePrice, setAveragePrice] = useState(0);
   const [perstar, setPerstar] = useState(0);
+  const [transactionCount, setTransactionCount] = useState(0);
 
-  // 데이터 로드 및 초기 계산
   const loadStockData = useCallback(async () => {
     const storedStocks = await getStocks();
     const foundStock = storedStocks.find(stock => stock.id === id);
@@ -19,7 +19,8 @@ const StockDetail = () => {
       setStock(foundStock);
 
       const stockTransactions = (await getTransactionsByStockId(id)).sort((a, b) => a.timestamp - b.timestamp);
-  
+      setTransactionCount(stockTransactions.length);
+
       let totalQuantity = 0;
       let averagePrice = 0;
       let totalProfit = 0;
@@ -64,7 +65,6 @@ const StockDetail = () => {
     return <p>해당 종목을 찾을 수 없습니다.</p>;
   }
 
-  // TransactionList에서 트랜잭션 변경 시 호출할 핸들러
   const handleTransactionUpdate = () => {
     loadStockData();
   };
@@ -85,15 +85,29 @@ const StockDetail = () => {
         <p>평균가: ${averagePrice.toFixed(2)}</p>
         <p>총 수량: {totalQuantity}</p>
       </div>
+
       <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
         <h2 className="text-2xl font-semibold" style={{ color: "red" }}>매수 가이드</h2>
-        <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount/averagePrice/2).toFixed(0)}</p>
-        <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)-0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100)-0.01).toFixed(2)/2).toFixed(0)}</p>
+        {transactionCount > 0 ? (
+          <>
+            <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}</p>
+            <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}</p>
+          </>
+        ) : (
+          <p>입력된 매수 수량이 없습니다.</p>
+        )}
         <br />
         <h2 className="text-2xl font-semibold" style={{ color: "blue" }}>매도 가이드</h2>
-        <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}</p>
-        <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal/100))).toFixed(2)} X {(totalQuantity-(totalQuantity / 4).toFixed(0)).toFixed(0)}</p>
+        {transactionCount > 0 ? (
+          <>
+            <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}</p>
+            <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal / 100))).toFixed(2)} X {(totalQuantity - (totalQuantity / 4).toFixed(0)).toFixed(0)}</p>
+          </>
+        ) : (
+          <p>입력된 매수 수량이 없습니다.</p>
+        )}
       </div>
+      
       <TransactionList stockId={id} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
     </div>
   );
