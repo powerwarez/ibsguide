@@ -1,96 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import StockItem from './StockItem'; // StockItem 컴포넌트 불러오기
-import AddStock from './AddStock'; // AddStock 컴포넌트 불러오기
-import { getStocks, saveStock, deleteStock } from '../db'; // IndexedDB에서 데이터를 불러오는 함수와 삭제 함수
+import StockItem from './StockItem';
+import AddStock from './AddStock';
+import { getStocks, saveStock, deleteStock } from '../db';
 
 const MainPage = () => {
-  const [stocks, setStocks] = useState([]); // 주식 데이터를 상태로 관리
-  const [isAdding, setIsAdding] = useState(false); // 종목 추가 폼 표시 여부
-  const navigate = useNavigate(); // useNavigate 훅으로 페이지 이동 관리
+  const [stocks, setStocks] = useState([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('운용중');
+  const navigate = useNavigate();
 
-  // 컴포넌트가 처음 마운트될 때 DB에서 데이터 로드
   useEffect(() => {
     const loadStocks = async () => {
       try {
-        const storedStocks = await getStocks(); // IndexedDB에서 주식 데이터 불러오기
-        setStocks(storedStocks); // 불러온 데이터를 상태에 저장
+        const storedStocks = await getStocks();
+        setStocks(storedStocks);
       } catch (error) {
         console.error('Error loading stocks:', error);
       }
     };
-    loadStocks(); // 데이터 로드 함수 실행
+    loadStocks();
   }, []);
 
-  // StockItem 클릭 시 세부 페이지로 이동
   const handleItemClick = (id) => {
-    navigate(`/stock-detail/${id}`); // 특정 종목의 세부 페이지로 이동
+    navigate(`/stock-detail/${id}`);
   };
 
-  // StockItem 삭제 처리
   const handleDeleteStock = async (id) => {
     try {
-      await deleteStock(id); // IndexedDB에서 데이터 삭제
-      setStocks(stocks.filter(stock => stock.id !== id)); // 상태에서 삭제된 항목 제거
+      await deleteStock(id);
+      setStocks(stocks.filter(stock => stock.id !== id));
     } catch (error) {
-      console.error('Error deleting stock:', error); // 삭제 오류 처리
+      console.error('Error deleting stock:', error);
     }
   };
 
-  // 새로운 종목 추가 처리
   const handleAddStock = async (newStock) => {
     try {
-      await saveStock(newStock); // IndexedDB에 저장
-      setStocks((prevStocks) => [...prevStocks, newStock]); // 상태에 추가
-      setIsAdding(false); // 폼을 숨기기
+      await saveStock(newStock);
+      setStocks((prevStocks) => [...prevStocks, newStock]);
+      setIsAdding(false);
     } catch (error) {
       console.error('Error saving stock:', error);
     }
   };
 
+  const filteredStocks = selectedTab === '운용중' 
+    ? stocks.filter(stock => !stock.isSettled)
+    : stocks.filter(stock => stock.isSettled);
+
+  // 정산된 종목의 수익금 합산 (isSettled가 true인 항목들만)
+  const totalProfit = stocks
+    .filter(stock => stock.isSettled)
+    .reduce((sum, stock) => sum + (stock.profit || 0), 0);
+
+  // 수익금에 따른 색상 클래스 설정
+  const profitColorClass = totalProfit > 0 
+    ? 'text-red-600' 
+    : totalProfit < 0 
+    ? 'text-blue-600' 
+    : 'text-gray-600';
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">
       <h1 className="text-3xl font-bold mb-6 text-center">무한매수</h1>
 
-      {/* 운용 종목 리스트 */}
-      {stocks.length > 0 ? (
+      {/* 정산됨 탭의 전체 수익금 카드 */}
+      {selectedTab === '정산됨' && (
+        <div className="p-4 mb-6 bg-gray-100 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold">전체 수익금</h2>
+          <p className={`text-2xl font-bold mt-2 ${profitColorClass}`}>
+            ${totalProfit.toFixed(2)}
+          </p>
+        </div>
+      )}
+
+      {filteredStocks.length > 0 ? (
         <div className="space-y-4">
-          {stocks.map(stock => (
+          {filteredStocks.map(stock => (
             <StockItem
               key={stock.id}
               stock={stock}
-              onItemClick={handleItemClick} // 클릭 시 세부 페이지 이동
-              onDelete={handleDeleteStock}  // 삭제 처리
+              onItemClick={handleItemClick}
+              onDelete={handleDeleteStock}
             />
           ))}
         </div>
       ) : (
-        <p className="text-center text-gray-500">운용 중인 종목이 없습니다.</p>
+        <p className="text-center text-gray-500">
+          {selectedTab === '운용중' ? '운용 중인 종목이 없습니다.' : '정산된 종목이 없습니다.'}
+        </p>
       )}
 
-      {/* 종목 추가 버튼 */}
-      <div className="text-center mt-6">
-        {!isAdding ? (
-          <button
-            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-            onClick={() => setIsAdding(true)} // 폼 표시
-          >
-            종목 추가
-          </button>
-        ) : (
-          <button
-            className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
-            onClick={() => setIsAdding(false)} // 폼 숨기기
-          >
-            취소
-          </button>
-        )}
+      {/* 운용중 탭에서만 종목 추가 버튼 표시 */}
+      {selectedTab === '운용중' && (
+        <div className="text-center mt-6">
+          {!isAdding ? (
+            <button
+              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+              onClick={() => setIsAdding(true)}
+            >
+              종목 추가
+            </button>
+          ) : (
+            <button
+              className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+              onClick={() => setIsAdding(false)}
+            >
+              취소
+            </button>
+          )}
+        </div>
+      )}
+
+      {isAdding && selectedTab === '운용중' && (
+        <AddStock onAdd={handleAddStock} />
+      )}
+
+      {/* 하단 탭 바 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-300 flex justify-around">
+        <button
+          className={`py-4 flex-1 ${selectedTab === '운용중' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          onClick={() => setSelectedTab('운용중')}
+        >
+          운용중
+        </button>
+        <button
+          className={`py-4 flex-1 ${selectedTab === '정산됨' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+          onClick={() => setSelectedTab('정산됨')}
+        >
+          정산됨
+        </button>
       </div>
-
-      {/* AddStock 폼 */}
-      {isAdding && (
-        <AddStock onAdd={handleAddStock} /> // AddStock 폼 렌더링, 데이터 추가 후 처리
-      )}
     </div>
   );
 };

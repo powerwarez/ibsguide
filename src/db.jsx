@@ -2,18 +2,15 @@ import { openDB } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
 
 // IndexedDB 설정
-const dbPromise = openDB('stocks-database', 2, { // 버전을 2로 설정하여 업그레이드 트리거
+const dbPromise = openDB('stocks-database', 2, {
   upgrade(db, oldVersion) {
-    // stocks 스토어 생성
     if (!db.objectStoreNames.contains('stocks')) {
       db.createObjectStore('stocks', { keyPath: 'id' });
     }
-    // transactions 스토어 생성 및 인덱스 설정
     if (!db.objectStoreNames.contains('transactions')) {
       const store = db.createObjectStore('transactions', { keyPath: 'id' });
-      store.createIndex('stockId', 'stockId', { unique: false }); // stockId 인덱스 생성
+      store.createIndex('stockId', 'stockId', { unique: false });
     } else if (oldVersion < 2) {
-      // 기존 transactions 스토어에 stockId 인덱스를 추가
       const transactionStore = db.transaction('transactions', 'readwrite').store;
       transactionStore.createIndex('stockId', 'stockId', { unique: false });
     }
@@ -27,6 +24,7 @@ export async function saveStock(stock) {
     id: uuidv4(),
     quantity: 0,
     averagePrice: 0,
+    isSettled: false, // 초기 정산 상태 설정
     ...stock,
   };
   await db.add('stocks', stockWithId);
@@ -38,12 +36,18 @@ export async function getStocks() {
   return await db.getAll('stocks');
 }
 
+// 특정 stockId로 종목 가져오기
+export async function getStockById(stockId) {
+  const db = await dbPromise;
+  return await db.get('stocks', stockId);
+}
+
 // 특정 stockItem의 거래 내역 저장
 export async function addTransaction(stockId, transaction) {
   const db = await dbPromise;
   const transactionWithId = {
     id: uuidv4(),
-    stockId, // stockId로 종목과 연결
+    stockId,
     ...transaction,
   };
   await db.add('transactions', transactionWithId);
@@ -67,11 +71,12 @@ export async function deleteStock(id) {
   const db = await dbPromise;
   await db.delete('stocks', id);
 
-  // 해당 종목과 연결된 모든 거래 내역도 삭제
-  const transactionIndex = db.transaction('transactions').store.index('stockId');
+  // 해당 종목과 연결된 모든 거래 내역 삭제
+  const transactionStore = db.transaction('transactions', 'readwrite').store;
+  const transactionIndex = transactionStore.index('stockId');
   const transactionsToDelete = await transactionIndex.getAllKeys(id);
   for (const transactionId of transactionsToDelete) {
-    await db.delete('transactions', transactionId);
+    await transactionStore.delete(transactionId);
   }
 }
 
@@ -87,7 +92,6 @@ export async function updateStock(stockId, updatedData) {
   const tx = db.transaction('stocks', 'readwrite');
   const store = tx.objectStore('stocks');
 
-  // 기존 stock 데이터를 가져와 필요한 필드만 업데이트
   const stock = await store.get(stockId);
   if (stock) {
     const updatedStock = { ...stock, ...updatedData };

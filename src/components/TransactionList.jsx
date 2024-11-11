@@ -1,43 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { addTransaction, getTransactionsByStockId, deleteTransaction } from '../db';
-
-const generateUniqueId = () => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-// 삭제 확인 모달 컴포넌트
-const DeleteModal = ({ transaction, onDeleteConfirm, onCancel }) => {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
-      <div className="bg-white rounded-lg p-6 w-80 shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">거래 삭제 확인</h2>
-        <p className="mb-2">정말로 이 거래를 삭제하시겠습니까?</p>
-        <p className="text-sm text-gray-700">거래 유형: {transaction.type}</p>
-        <p className="text-sm text-gray-700">날짜: {transaction.date}</p>
-        <p className="text-sm text-gray-700">가격: ${transaction.price}</p>
-        <p className="text-sm text-gray-700">수량: {Math.abs(transaction.quantity)}</p>
-        <p className="text-sm text-gray-700">수수료: ${transaction.fee}</p>
-        <div className="mt-4 flex justify-end space-x-2">
-          <button
-            onClick={onCancel}
-            className="bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400"
-          >
-            취소
-          </button>
-          <button
-            onClick={() => onDeleteConfirm(transaction.id)}
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-          >
-            삭제
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { v4 as uuidv4 } from 'uuid';
+import { addTransaction, getTransactionsByStockId, deleteTransaction, updateStock, getStockById } from '../db';
+import TransactionForm from './TransactionForm';
+import TransactionTable from './TransactionTable';
+import DeleteModal from './DeleteModal';
+import ConfirmSettlementModal from './ConfirmSettlementModal';
 
 const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => {
   const [transactions, setTransactions] = useState([]);
+  const [isSettled, setIsSettled] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
   const [transactionInput, setTransactionInput] = useState({
@@ -46,200 +17,134 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
     quantity: '',
     fee: '',
   });
-  const [transactionToDelete, setTransactionToDelete] = useState(null); // 삭제할 트랜잭션 저장
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [showSettlementModal, setShowSettlementModal] = useState(false);
 
+  // 트랜잭션 및 종목 정보를 로드하는 함수
   const loadTransactions = useCallback(async () => {
-    const storedTransactions = await getTransactionsByStockId(stockId);
-    const sortedTransactions = storedTransactions.sort((a, b) => b.timestamp - a.timestamp);
-    setTransactions(sortedTransactions);
+    try {
+      const storedTransactions = await getTransactionsByStockId(stockId);
+      const stock = await getStockById(stockId);
+      setTransactions(storedTransactions.sort((a, b) => b.timestamp - a.timestamp));
+      setIsSettled(stock?.isSettled || false);
+    } catch (error) {
+      console.error("Error loading transactions:", error);
+    }
   }, [stockId]);
 
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
 
+  // 정산 처리 함수
+  const handleSettlement = async () => {
+    try {
+      await updateStock(stockId, { isSettled: true });
+      alert('거래가 정산되었습니다.');
+      setShowSettlementModal(false);
+      setIsSettled(true);
+    } catch (error) {
+      console.error("Error during settlement:", error);
+    }
+  };
+
+  // 매수/매도 트랜잭션 추가 함수
   const handleTransactionSubmit = async (type) => {
     try {
       const newQuantity = type === '매도' ? -Math.abs(transactionInput.quantity) : parseInt(transactionInput.quantity, 10);
-      const inputDate = new Date(transactionInput.date);
-      const currentTime = new Date();
-      const timestamp = new Date(
-        inputDate.getFullYear(),
-        inputDate.getMonth(),
-        inputDate.getDate(),
-        currentTime.getHours(),
-        currentTime.getMinutes(),
-        currentTime.getSeconds()
-      ).getTime();
+      const timestamp = new Date().getTime();
 
       const newTransaction = {
         ...transactionInput,
-        id: generateUniqueId(),
+        id: uuidv4(),
         quantity: newQuantity,
         type,
         timestamp,
-        stockId
+        stockId,
       };
 
       await addTransaction(stockId, newTransaction);
-      setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
 
-      setTransactionInput({
-        date: new Date().toISOString().slice(0, 10),
-        price: '',
-        quantity: '',
-        fee: ''
-      });
-      setIsBuying(false);
-      setIsSelling(false);
+      const updatedTransactions = [newTransaction, ...transactions];
+      setTransactions(updatedTransactions);
 
+      // 총 수량 계산 후 정산 여부 결정
+      const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
+      if (totalQuantity === 0) {
+        setShowSettlementModal(true); // 총 수량이 0이면 정산 모달 표시
+      } else {
+        resetTransactionInput(); // 입력 초기화
+      }
       await loadTransactions();
-      onAddTransaction();
+      onAddTransaction?.();
     } catch (error) {
-      console.error('거래 추가 중 오류 발생:', error);
+      console.error('Error adding transaction:', error);
       await loadTransactions();
     }
   };
 
-  const handleCancel = () => {
+  // 트랜잭션 입력 필드를 초기화하는 함수
+  const resetTransactionInput = () => {
     setTransactionInput({
       date: new Date().toISOString().slice(0, 10),
       price: '',
       quantity: '',
-      fee: ''
+      fee: '',
     });
     setIsBuying(false);
     setIsSelling(false);
   };
 
-  // 삭제 버튼 클릭 시 모달 표시
-  const handleDeleteClick = (transaction) => {
-    setTransactionToDelete(transaction);
-  };
-
-  // 모달에서 삭제 확인 시 실행되는 함수
+  // 트랜잭션 삭제 확인 함수
   const handleDeleteConfirm = async (transactionId) => {
-    await deleteTransaction(transactionId);
-    setTransactions(prevTransactions => prevTransactions.filter(txn => txn.id !== transactionId));
-    onDeleteTransaction();
-    setTransactionToDelete(null); // 모달 닫기
-  };
-
-  const handleDeleteCancel = () => {
-    setTransactionToDelete(null); // 모달 닫기
+    try {
+      await deleteTransaction(transactionId);
+      setTransactions((prevTransactions) => prevTransactions.filter((txn) => txn.id !== transactionId));
+      onDeleteTransaction?.();
+      setTransactionToDelete(null);
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    }
   };
 
   return (
     <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
-      {/* 삭제 모달 표시 */}
       {transactionToDelete && (
         <DeleteModal
           transaction={transactionToDelete}
           onDeleteConfirm={handleDeleteConfirm}
-          onCancel={handleDeleteCancel}
+          onCancel={() => setTransactionToDelete(null)}
         />
       )}
 
-      {/* 거래 입력 폼 (매수/매도) */}
-      {(isBuying || isSelling) && (
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold mb-4">{isBuying ? '매수 입력' : '매도 입력'}</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block">날짜:</label>
-              <input
-                type="date"
-                value={transactionInput.date}
-                onChange={(e) => setTransactionInput({ ...transactionInput, date: e.target.value })}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div>
-              <label className="block">체결가:</label>
-              <input
-                type="number"
-                value={transactionInput.price}
-                onChange={(e) => setTransactionInput({ ...transactionInput, price: e.target.value })}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div>
-              <label className="block">수량:</label>
-              <input
-                type="number"
-                value={transactionInput.quantity}
-                onChange={(e) => setTransactionInput({ ...transactionInput, quantity: e.target.value })}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div>
-              <label className="block">수수료:</label>
-              <input
-                type="number"
-                value={transactionInput.fee}
-                onChange={(e) => setTransactionInput({ ...transactionInput, fee: e.target.value })}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div className="flex space-x-4">
-              <button
-                onClick={() => handleTransactionSubmit(isBuying ? '매수' : '매도')}
-                className={`w-full text-white py-2 rounded ${isBuying ? 'bg-red-500' : 'bg-blue-500'}`}
-              >
-                {isBuying ? '매수 등록' : '매도 등록'}
-              </button>
-              <button
-                onClick={handleCancel}
-                className="w-full bg-gray-400 text-white py-2 rounded"
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        </div>
+      {showSettlementModal && (
+        <ConfirmSettlementModal
+          onConfirm={handleSettlement}
+          onCancel={() => setShowSettlementModal(false)}
+        />
+      )}
+
+      {/* 매수/매도 입력 폼 */}
+      {(!isSettled && (isBuying || isSelling)) && (
+        <TransactionForm
+          transactionInput={transactionInput}
+          setTransactionInput={setTransactionInput}
+          handleTransactionSubmit={handleTransactionSubmit}
+          handleCancel={resetTransactionInput}
+          isBuying={isBuying}
+          isSelling={isSelling}
+        />
       )}
 
       {/* 거래 내역 테이블 */}
-      {transactions.length > 0 && (
-        <table className="w-full border-collapse mt-6">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="p-2 border">No</th>
-              <th className="p-2 border">거래 유형</th>
-              <th className="p-2 border">날짜</th>
-              <th className="p-2 border">체결가</th>
-              <th className="p-2 border">수량</th>
-              <th className="p-2 border">수수료</th>
-              <th className="p-2 border">삭제</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((transaction, index) => (
-              <tr key={transaction.id || index} className="text-center">
-                <td className="p-2 border">{index + 1}</td>
-                <td className={`p-2 border ${transaction.type === '매수' ? 'text-red-500' : 'text-blue-500'}`}>
-                  {transaction.type}
-                </td>
-                <td className="p-2 border">{transaction.date}</td>
-                <td className="p-2 border">${transaction.price}</td>
-                <td className="p-2 border">{Math.abs(transaction.quantity)}</td>
-                <td className="p-2 border">${transaction.fee}</td>
-                <td className="p-2 border text-center">
-                  <button
-                    onClick={() => handleDeleteClick(transaction)}
-                    className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                  >
-                    X
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <TransactionTable
+        transactions={transactions}
+        isSettled={isSettled}
+        onDeleteClick={(transaction) => setTransactionToDelete(transaction)}
+      />
 
       {/* 매수/매도 버튼 */}
-      {!isBuying && !isSelling && (
+      {!isSettled && !isBuying && !isSelling && (
         <div className="flex justify-between mt-6">
           <button
             onClick={() => { setIsBuying(true); setIsSelling(false); }}

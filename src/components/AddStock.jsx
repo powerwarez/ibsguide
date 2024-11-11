@@ -8,7 +8,8 @@ const AddStock = ({ onAdd }) => {
   const [profitGoal, setProfitGoal] = useState(0); // 수익률
   const [divisionCount, setDivisionCount] = useState(1); // 분할 횟수
   const [perTradeAmount, setPerTradeAmount] = useState(0); // 1회 매수금
-  const [profit, setProfit] = useState(0);
+  const [profit, setProfit] = useState(0); // 현재 수익
+  const [isSettled] = useState(false); // 정산 여부 (초기값 false)
 
   // 투자 금액과 분할 횟수에 따라 1회 매수금을 계산
   useEffect(() => {
@@ -30,7 +31,8 @@ const AddStock = ({ onAdd }) => {
       profitGoal: parseFloat(profitGoal), // 숫자로 변환
       divisionCount: parseInt(divisionCount), // 숫자로 변환
       profit: parseFloat(profit),
-      perTradeAmount 
+      perTradeAmount,
+      isSettled // 정산 여부
     };
     
     try {
