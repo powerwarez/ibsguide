@@ -91,8 +91,17 @@ const StockDetail = () => {
         <h2 className="text-2xl font-semibold" style={{ color: "red" }}>매수 가이드</h2>
         {transactionCount > 0 ? (
           <>
-            <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}</p>
-            <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}</p>
+            {perstar >= 0 ? (
+              <>
+              <h3>전반전 매수</h3>
+              <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}</p>
+              <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}</p>
+            </>) : (
+              <>
+              <h3>후반전 매수</h3>
+              <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01)).toFixed(0)}</p>
+            </>
+            )}
           </>
         ) : (
           <p>입력된 매수 수량이 없습니다.</p>
