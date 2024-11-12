@@ -1,6 +1,9 @@
 import React from 'react';
 
 const TransactionForm = ({ transactionInput, setTransactionInput, handleTransactionSubmit, handleCancel, isBuying, isSelling }) => {
+  // onWheel 이벤트 핸들러로 스크롤을 방지하는 함수
+  const preventScroll = (e) => e.target.blur();
+
   return (
     <div className="mb-6">
       <h3 className="text-xl font-semibold mb-4">{isBuying ? '매수 입력' : '매도 입력'}</h3>
@@ -20,6 +23,7 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
             type="number"
             value={transactionInput.price}
             onChange={(e) => setTransactionInput({ ...transactionInput, price: e.target.value })}
+            onWheel={preventScroll} // 마우스 휠 방지 추가
             className="w-full p-2 border rounded"
           />
         </div>
@@ -29,6 +33,7 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
             type="number"
             value={transactionInput.quantity}
             onChange={(e) => setTransactionInput({ ...transactionInput, quantity: e.target.value })}
+            onWheel={preventScroll} // 마우스 휠 방지 추가
             className="w-full p-2 border rounded"
           />
         </div>
@@ -38,6 +43,7 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
             type="number"
             value={transactionInput.fee}
             onChange={(e) => setTransactionInput({ ...transactionInput, fee: e.target.value })}
+            onWheel={preventScroll} // 마우스 휠 방지 추가
             className="w-full p-2 border rounded"
           />
         </div>

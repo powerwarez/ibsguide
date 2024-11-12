@@ -10,6 +10,8 @@ const AddStock = ({ onAdd }) => {
   const [perTradeAmount, setPerTradeAmount] = useState(0); // 1회 매수금
   const [profit, setProfit] = useState(0); // 현재 수익
   const [isSettled] = useState(false); // 정산 여부 (초기값 false)
+  const [quarterCutMode] = useState(false);
+  const [transactionCounter] = useState(0);
 
   // 투자 금액과 분할 횟수에 따라 1회 매수금을 계산
   useEffect(() => {
@@ -32,7 +34,9 @@ const AddStock = ({ onAdd }) => {
       divisionCount: parseInt(divisionCount), // 숫자로 변환
       profit: parseFloat(profit),
       perTradeAmount,
-      isSettled // 정산 여부
+      isSettled, // 정산 여부
+      quarterCutMode,
+      transactionCounter
     };
     
     try {
@@ -42,6 +46,9 @@ const AddStock = ({ onAdd }) => {
       console.error('Error in handleSubmit:', error);
     }
   };
+
+  // onWheel 이벤트 핸들러 추가하여 마우스 휠 이벤트 방지
+  const preventScroll = (e) => e.target.blur();
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 mt-6 rounded-lg shadow-md">
@@ -75,6 +82,7 @@ const AddStock = ({ onAdd }) => {
         type="number"
         value={investment}
         onChange={(e) => setInvestment(e.target.value)}
+        onWheel={preventScroll}
         className="block w-full mb-4 p-2 border rounded"
         min="0"
       />
@@ -85,6 +93,7 @@ const AddStock = ({ onAdd }) => {
         type="number"
         value={divisionCount}
         onChange={(e) => setDivisionCount(e.target.value)}
+        onWheel={preventScroll}
         className="block w-full mb-4 p-2 border rounded"
         min="1"
       />
@@ -104,6 +113,7 @@ const AddStock = ({ onAdd }) => {
         type="number"
         value={profitGoal}
         onChange={(e) => setProfitGoal(e.target.value)}
+        onWheel={preventScroll}
         className="block w-full mb-4 p-2 border rounded"
       />
 
