@@ -54,16 +54,30 @@ const AddStock = ({ onAdd }) => {
     <form onSubmit={handleSubmit} className="bg-white p-6 mt-6 rounded-lg shadow-md">
       <h3 className="text-lg font-medium mb-4">운용 종목 추가</h3>
 
-      {/* 종목명 선택 */}
+      {/* 종목명 선택 - 라디오 버튼으로 변경 */}
       <label className="block mb-2">종목명:</label>
-      <select
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="block w-full mb-4 p-2 border rounded"
-      >
-        <option value="TQQQ">TQQQ</option>
-        <option value="SOXL">SOXL</option>
-      </select>
+      <div className="flex items-center mb-4 space-x-4">
+        <label className="flex items-center">
+          <input
+            type="radio"
+            value="TQQQ"
+            checked={name === 'TQQQ'}
+            onChange={(e) => setName(e.target.value)}
+            className="mr-2"
+          />
+          TQQQ
+        </label>
+        <label className="flex items-center">
+          <input
+            type="radio"
+            value="SOXL"
+            checked={name === 'SOXL'}
+            onChange={(e) => setName(e.target.value)}
+            className="mr-2"
+          />
+          SOXL
+        </label>
+      </div>
 
       {/* 투자 버전 선택 */}
       <label className="block mb-2">투자 버전:</label>
@@ -77,7 +91,7 @@ const AddStock = ({ onAdd }) => {
       </select>
 
       {/* 투자 금액 입력 */}
-      <label className="block mb-2">투자 금액 (달러):</label>
+      <label className="block mb-2">투자 금액($):</label>
       <input
         type="number"
         value={investment}
@@ -99,7 +113,7 @@ const AddStock = ({ onAdd }) => {
       />
 
       {/* 1회 매수금 계산 결과 */}
-      <label className="block mb-2">1회 매수금 (달러):</label>
+      <label className="block mb-2">1회 매수금($):</label>
       <input
         type="number"
         value={perTradeAmount}
@@ -108,7 +122,7 @@ const AddStock = ({ onAdd }) => {
       />
 
       {/* 수익률 입력 */}
-      <label className="block mb-2">수익률 (%):</label>
+      <label className="block mb-2">목표 수익률 (%):</label>
       <input
         type="number"
         value={profitGoal}

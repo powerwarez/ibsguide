@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom'; // useNavigate 추가
 import { addTransaction, getTransactionsByStockId, deleteTransaction, updateStock, getStockById } from '../db';
 import TransactionForm from './TransactionForm';
 import TransactionTable from './TransactionTable';
@@ -20,6 +21,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [settlementDate, setSettlementDate] = useState(null);
+  const navigate = useNavigate(); // useNavigate 사용
 
   // 트랜잭션 및 종목 정보를 로드하는 함수
   const loadTransactions = useCallback(async () => {
@@ -44,9 +46,10 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
       const updatedName = `${stock.name}(${settlementDate} 정산)`;
 
       await updateStock(stockId, { isSettled: true, name: updatedName });
-      alert('거래가 정산되었습니다.');
       setShowSettlementModal(false);
       setIsSettled(true);
+      // 정산 후 메인 페이지로 이동하며 '정산됨' 탭으로 설정
+      navigate('/', { state: { selectedTab: '정산됨' } });
     } catch (error) {
       console.error("Error during settlement:", error);
     }
@@ -75,13 +78,12 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
       // 총 수량 계산 후 정산 여부 결정
       const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
       if (totalQuantity === 0 && type === '매도') {
-        // 매도 트랜잭션 날짜를 "YYYY년 MM월 DD일" 형식으로 포맷
         const date = new Date(transactionInput.date);
         const formattedDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
-        setSettlementDate(formattedDate); // 정산 날짜 설정
-        setShowSettlementModal(true); // 정산 확인 모달 표시
+        setSettlementDate(formattedDate);
+        setShowSettlementModal(true);
       } else {
-        resetTransactionInput(); // 입력 초기화
+        resetTransactionInput();
       }
       await loadTransactions();
       onAddTransaction?.();
