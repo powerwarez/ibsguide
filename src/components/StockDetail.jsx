@@ -91,7 +91,7 @@ const StockDetail = () => {
         <h2 className="text-2xl font-semibold" style={{ color: "red" }}>매수 가이드</h2>
         {transactionCount > 0 ? (
           <>
-            {perstar >= 0 ? (
+            {perstar >= 0 && stock.version==="2.2" ? (
               <>
               <h3>전반전 매수</h3>
               <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}</p>
