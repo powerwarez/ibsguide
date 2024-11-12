@@ -19,6 +19,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
   });
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
+  const [settlementDate, setSettlementDate] = useState(null);
 
   // 트랜잭션 및 종목 정보를 로드하는 함수
   const loadTransactions = useCallback(async () => {
@@ -39,7 +40,10 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
   // 정산 처리 함수
   const handleSettlement = async () => {
     try {
-      await updateStock(stockId, { isSettled: true });
+      const stock = await getStockById(stockId);
+      const updatedName = `${stock.name}(${settlementDate} 정산)`;
+
+      await updateStock(stockId, { isSettled: true, name: updatedName });
       alert('거래가 정산되었습니다.');
       setShowSettlementModal(false);
       setIsSettled(true);
@@ -70,8 +74,12 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction }) => 
 
       // 총 수량 계산 후 정산 여부 결정
       const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
-      if (totalQuantity === 0) {
-        setShowSettlementModal(true); // 총 수량이 0이면 정산 모달 표시
+      if (totalQuantity === 0 && type === '매도') {
+        // 매도 트랜잭션 날짜를 "YYYY년 MM월 DD일" 형식으로 포맷
+        const date = new Date(transactionInput.date);
+        const formattedDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
+        setSettlementDate(formattedDate); // 정산 날짜 설정
+        setShowSettlementModal(true); // 정산 확인 모달 표시
       } else {
         resetTransactionInput(); // 입력 초기화
       }

@@ -45,21 +45,33 @@ const MainPage = () => {
     }
   };
 
-  const filteredStocks = selectedTab === '운용중' 
-    ? stocks.filter(stock => !stock.isSettled)
-    : stocks.filter(stock => stock.isSettled);
-
-  // 정산된 종목의 수익금 합산 (isSettled가 true인 항목들만)
+  // 정산된 탭의 전체 수익금 계산
   const totalProfit = stocks
     .filter(stock => stock.isSettled)
     .reduce((sum, stock) => sum + (stock.profit || 0), 0);
 
-  // 수익금에 따른 색상 클래스 설정
+  // 수익금에 따른 색상 클래스
   const profitColorClass = totalProfit > 0 
     ? 'text-red-600' 
     : totalProfit < 0 
     ? 'text-blue-600' 
     : 'text-gray-600';
+
+  // 정산된 종목 날짜 기준 내림차순 정렬
+  const filteredStocks = selectedTab === '운용중'
+    ? stocks.filter(stock => !stock.isSettled)
+    : stocks
+        .filter(stock => stock.isSettled)
+        .sort((a, b) => {
+          const dateA = a.name.match(/\((\d{4})년 (\d{2})월 (\d{2})일 정산\)/);
+          const dateB = b.name.match(/\((\d{4})년 (\d{2})월 (\d{2})일 정산\)/);
+          if (dateA && dateB) {
+            const parsedDateA = new Date(`${dateA[1]}/${dateA[2]}/${dateA[3]}`);
+            const parsedDateB = new Date(`${dateB[1]}/${dateB[2]}/${dateB[3]}`);
+            return parsedDateB - parsedDateA;
+          }
+          return 0;
+        });
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">

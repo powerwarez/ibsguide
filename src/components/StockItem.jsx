@@ -7,7 +7,7 @@ const StockItem = ({ stock, onDelete }) => {
 
   // 비율 계산 (investment 대비 보유 자산 비율)
   const investedValue = stock.averagePrice * stock.quantity;
-  const valueT = investedValue / stock.perTradeAmount
+  const valueT = investedValue / stock.perTradeAmount;
   const roundedInvestedPercentage = Math.ceil(valueT * 10) / 10; // 소수 둘째 자리에서 올림
 
   // StockItem 클릭 시 세부 페이지로 이동
@@ -31,6 +31,7 @@ const StockItem = ({ stock, onDelete }) => {
       <div>
         <h2 className="text-xl font-semibold">{stock.name} (v{stock.version})</h2>
         <p>투자 금액: ${stock.investment}</p>
+        <p>분할 횟수: {stock.divisionCount}회</p> {/* 분할 횟수 표시 */}
         <p>목표 수익률: {stock.profitGoal}%</p>
         <p>1회 매수금: ${stock.perTradeAmount.toFixed(2)}</p>
         <p>
@@ -40,15 +41,17 @@ const StockItem = ({ stock, onDelete }) => {
         {/* 투자 비율 Progress Bar */}
         <div className="mt-3">
           <div className="flex justify-between text-sm text-gray-700 mb-1">
-            <span>T값: {roundedInvestedPercentage>0? roundedInvestedPercentage:0} </span>
+            <span>T값: {roundedInvestedPercentage > 0 ? roundedInvestedPercentage : 0} </span>
           </div>
           <div className="w-full bg-gray-300 rounded h-4 overflow-hidden">
             <div
-              style={{ width: `${roundedInvestedPercentage}%` }}
+              style={{ width: `${roundedInvestedPercentage/stock.divisionCount*100}%` }}
               className="h-full bg-green-500"
             ></div>
           </div>
-          <p className="text-xs text-gray-500 mt-1">보유 자산: ${investedValue.toFixed(2)>0? investedValue.toFixed(2):0} / 총 투자: ${stock.investment}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            보유 자산: ${investedValue.toFixed(2) > 0 ? investedValue.toFixed(2) : 0} / 총 투자: ${stock.investment}
+          </p>
         </div>
       </div>
 

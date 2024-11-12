@@ -79,6 +79,7 @@ const StockDetail = () => {
       <div className="mb-6">
         <h2 className="text-2xl font-semibold">{stock.name} (v{stock.version})</h2>
         <p>총 투자 금액: ${stock.investment}</p>
+        <p>분할 횟수: {stock.divisionCount}회</p>
         <p>1회 매수 금액: ${stock.perTradeAmount}</p>
         <p>목표 수익률: {stock.profitGoal}%</p>
         <p>투자 손익 금액: <span style={{ color: stock.profit > 0 ? 'red' : 'blue' }}>${stock.profit}</span></p>
