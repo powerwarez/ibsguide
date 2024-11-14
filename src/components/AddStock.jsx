@@ -11,7 +11,7 @@ const AddStock = ({ onAdd }) => {
   const [profit, setProfit] = useState(0); // 현재 수익
   const [isSettled] = useState(false); // 정산 여부 (초기값 false)
   const [quarterCutMode] = useState(false);
-  const [transactionCounter] = useState(0);
+  const [cutModetransactionCounter] = useState(0);
 
   // 투자 금액과 분할 횟수에 따라 1회 매수금을 계산
   useEffect(() => {
@@ -36,7 +36,7 @@ const AddStock = ({ onAdd }) => {
       perTradeAmount,
       isSettled, // 정산 여부
       quarterCutMode,
-      transactionCounter
+      cutModetransactionCounter
     };
     
     try {

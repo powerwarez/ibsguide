@@ -11,7 +11,6 @@ const StockDetail = () => {
   const [averagePrice, setAveragePrice] = useState(0);
   const [perstar, setPerstar] = useState(0);
   const [transactionCount, setTransactionCount] = useState(0);
-
   const loadStockData = useCallback(async () => {
     const storedStocks = await getStocks();
     const foundStock = storedStocks.find(stock => stock.id === id);
@@ -24,7 +23,7 @@ const StockDetail = () => {
       let totalQuantity = 0;
       let averagePrice = 0;
       let totalProfit = 0;
-
+      
       stockTransactions.forEach(txn => {
         if (txn.type === '매수') {
           const newPurchaseAmount = txn.price * txn.quantity;
@@ -44,9 +43,17 @@ const StockDetail = () => {
         ...prevStock,
         profit: totalProfit,
       }));
+      console.log("***************************************")
+      console.log("averagePrice", averagePrice)
+      console.log("totalQuantity", totalQuantity)
+      console.log("perTradeAmount", foundStock.perTradeAmount)
+      console.log("calculatedValueT", Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100)
+      // valueT 계산 후 상태 업데이트
+      const calculatedValueT = Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100;
+      
+      // version에 따라 perstarValue 계산
+      const perstarValue = foundStock.profitGoal - (foundStock.profitGoal / (foundStock.divisionCount/2)) * calculatedValueT
 
-      const valueT = Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100;
-      const perstarValue = foundStock.profitGoal - (foundStock.profitGoal / 10) * valueT;
       setPerstar(perstarValue.toFixed(1));
 
       await updateStock(id, {
@@ -54,6 +61,25 @@ const StockDetail = () => {
         averagePrice: averagePrice,
         profit: totalProfit,
       });
+
+    // quarterCutMode가 시작되는 조건을 확인
+    if (foundStock.version === "2.2" && foundStock.divisionCount - calculatedValueT < 1 && !foundStock.quarterCutMode) {
+      await updateStock(id, { quarterCutMode: true, cutModetransactionCounter: stockTransactions.length });
+      // 업데이트된 데이터 다시 로드
+      await loadStockData();
+      return; // 중복 호출 방지
+    }
+
+    const postCutTransactions = stockTransactions.slice(foundStock.cutModetransactionCounter);
+    const recentSellCount = postCutTransactions.filter(txn => txn.type === '매도').length;
+
+    if (recentSellCount >= 2 && foundStock.quarterCutMode) {
+      await updateStock(id, { quarterCutMode: false, cutModetransactionCounter: -1 });
+      await loadStockData();
+    }
+    console.log("foundStock.divisionCount - calculatedValueT", foundStock.divisionCount - calculatedValueT)
+    console.log("calculatedValueT", calculatedValueT)
+    console.log("quarterCutMode", foundStock.quarterCutMode)
     }
   }, [id]);
 
@@ -85,25 +111,26 @@ const StockDetail = () => {
         <p>투자 손익 금액: <span style={{ color: stock.profit > 0 ? 'red' : 'blue' }}>${stock.profit}</span></p>
         <p>평균가: ${averagePrice.toFixed(2)}</p>
         <p>총 수량: {totalQuantity}</p>
+        <p>총 매수금액: ${(averagePrice.toFixed(2) * totalQuantity).toFixed(2)}</p>
       </div>
 
       <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
         <h2 className="text-2xl font-semibold" style={{ color: "red" }}>매수 가이드</h2>
         {transactionCount > 0 ? (
-          <>
-          {/* 2.2 전후반전 매수 시작 */}
+          <> {/* 트랜잭션 있음 */}
+            
             {perstar >= 0 && stock.version==="2.2" ? (
-              <>
-              <h3>전반전 매수</h3>
-              <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}</p>
-              <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}</p>
-            </>) : (
-              <>
-              <h3>후반전 매수</h3>
-              <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01)).toFixed(0)}</p>
-            </>
-            )} 
-            {/* 2.2 전후반전 매수 끝 */}
+              <> {/* 2.2 전후반전 매수 시작 */}
+                <h3>전반전 매수</h3>
+                <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}</p>
+                <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}</p>
+              </>
+            ) : (
+              <> {/* 2.2 전후반전 매수 끝 */}
+                <h3>후반전 매수</h3>
+                <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01)).toFixed(0)}</p>
+              </>
+            )}
           </>
         ) : (
           <p>입력된 매수 수량이 없습니다.</p>
@@ -111,16 +138,52 @@ const StockDetail = () => {
         <br />
         <h2 className="text-2xl font-semibold" style={{ color: "blue" }}>매도 가이드</h2>
         {transactionCount > 0 ? (
-          <>
-            <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}</p>
-            <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal / 100))).toFixed(2)} X {(totalQuantity - (totalQuantity / 4).toFixed(0)).toFixed(0)}</p>
-          </>
+            <>
+              {stock.quarterCutMode === true ? (
+                <>
+                  {/* quarterCutMode가 시작되었고, transactionCount가 cutModetransactionCounter와 같은 경우 */}
+                  {transactionCount - stock.cutModetransactionCounter === 0 ? (
+                    <p>쿼터손절모드 MOC매도: {Math.floor(totalQuantity / 4)}개</p>
+                  ) : (
+                    <>
+                      {/* quarterCutMode가 활성화된 상태에서 10개 미만의 트랜잭션이 발생한 경우 */}
+                      {transactionCount - stock.cutModetransactionCounter <= 10 ? (
+                        <>
+                          <p>transactionCount: {transactionCount}</p>
+                          <p>stock.cutModetransactionCounter: {stock.cutModetransactionCounter}</p>
+                          <p>쿼터손절모드 -{stock.profitGoal}% LOC매도: {averagePrice * (1-stock.profitGoal/100)} X {Math.floor(totalQuantity / 4)}개</p>
+                          {/* cutModetransactionCounter가 -1일 때만 업데이트 */}
+                          {stock.cutModetransactionCounter === -1 && (() => {
+                            stock.cutModetransactionCounter = transactionCount;
+                          })()}
+                        </>
+                      ) : (
+                        <>
+                          {/* 10개 이상의 트랜잭션이 발생한 경우 매도 안내 */}
+                          {/* cutModetransactionCounter 업데이트 */}
+                            {(() => {
+                              updateStock(stock.id, { cutModetransactionCounter: transactionCount })
+                              handleTransactionUpdate();
+                            })()}
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+                ) : (
+                  <>
+                    {/* quarterCutMode가 비활성화된 상태의 일반 매도 안내 */}
+                    <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}</p>
+                    <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal / 100))).toFixed(2)} X {(totalQuantity - (totalQuantity / 4).toFixed(0)).toFixed(0)}</p>
+                  </>
+                )}
+              </>
         ) : (
           <p>입력된 매수 수량이 없습니다.</p>
         )}
       </div>
       
-      <TransactionList stockId={id} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
+      <TransactionList stockId={id} perstar={perstar} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
     </div>
   );
 };
