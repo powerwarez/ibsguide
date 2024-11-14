@@ -11,6 +11,7 @@ const StockDetail = () => {
   const [averagePrice, setAveragePrice] = useState(0);
   const [perstar, setPerstar] = useState(0);
   const [transactionCount, setTransactionCount] = useState(0);
+
   const loadStockData = useCallback(async () => {
     const storedStocks = await getStocks();
     const foundStock = storedStocks.find(stock => stock.id === id);
@@ -80,8 +81,22 @@ const StockDetail = () => {
     console.log("foundStock.divisionCount - calculatedValueT", foundStock.divisionCount - calculatedValueT)
     console.log("calculatedValueT", calculatedValueT)
     console.log("quarterCutMode", foundStock.quarterCutMode)
+
+    // 추가 조건: transactionCount - stock.cutModetransactionCounter === 1일 때 가장 최근 매도 가격 확인
+    if (
+      foundStock.quarterCutMode === true &&
+      transactionCount - foundStock.cutModetransactionCounter === 1
+    ) {
+      const lastTransaction = stockTransactions[stockTransactions.length - 1];
+      
+      if (lastTransaction.type === '매도' && lastTransaction.price > averagePrice * (1 - foundStock.profitGoal / 100)) {
+        await updateStock(id, { quarterCutMode: false, cutModetransactionCounter: -1 });
+        await loadStockData();
+      }
     }
-  }, [id]);
+    
+    }
+  }, [id, transactionCount]);
 
   useEffect(() => {
     loadStockData();
@@ -119,7 +134,7 @@ const StockDetail = () => {
   매수 가이드
   {stock.quarterCutMode === true && transactionCount - stock.cutModetransactionCounter <= 10 && (
     <span>
-      {Array.from({ length: 10-(transactionCount - stock.cutModetransactionCounter) }, () => '⭐').join('')}
+      {Array.from({ length: 11-(transactionCount - stock.cutModetransactionCounter) }, () => '⭐').join('')}
     </span>
   )}
 </h2>
