@@ -11,6 +11,18 @@ const StockDetail = () => {
   const [averagePrice, setAveragePrice] = useState(0);
   const [perstar, setPerstar] = useState(0);
   const [transactionCount, setTransactionCount] = useState(0);
+  const [starCounter, setStarCounter] = useState(0);
+  const [cutModePerTradeAmount, setCutModePerTradeAmount] = useState(0);
+  // stock의 version에 따라 starCounter를 초기화하는 useEffect
+  useEffect(() => {
+    if (stock) {
+      if (stock.version === "2.2") {
+        setStarCounter(10);
+      } else if (stock.version === "3.0") {
+        setStarCounter(5);
+      }
+    }
+  }, [stock]);
 
   const loadStockData = useCallback(async () => {
     const storedStocks = await getStocks();
@@ -44,11 +56,6 @@ const StockDetail = () => {
         ...prevStock,
         profit: totalProfit,
       }));
-      console.log("***************************************")
-      console.log("averagePrice", averagePrice)
-      console.log("totalQuantity", totalQuantity)
-      console.log("perTradeAmount", foundStock.perTradeAmount)
-      console.log("calculatedValueT", Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100)
       // valueT 계산 후 상태 업데이트
       const calculatedValueT = Math.ceil((averagePrice * totalQuantity / foundStock.perTradeAmount) * 100) / 100;
       
@@ -78,9 +85,6 @@ const StockDetail = () => {
       await updateStock(id, { quarterCutMode: false, cutModetransactionCounter: -1 });
       await loadStockData();
     }
-    console.log("foundStock.divisionCount - calculatedValueT", foundStock.divisionCount - calculatedValueT)
-    console.log("calculatedValueT", calculatedValueT)
-    console.log("quarterCutMode", foundStock.quarterCutMode)
 
     // 추가 조건: transactionCount - stock.cutModetransactionCounter === 1일 때 가장 최근 매도 가격 확인
     if (
@@ -88,15 +92,14 @@ const StockDetail = () => {
       transactionCount - foundStock.cutModetransactionCounter === 1
     ) {
       const lastTransaction = stockTransactions[stockTransactions.length - 1];
-      
+      setCutModePerTradeAmount((lastTransaction.price * Math.abs(lastTransaction.quantity) / starCounter).toFixed(2))
       if (lastTransaction.type === '매도' && lastTransaction.price > averagePrice * (1 - foundStock.profitGoal / 100)) {
         await updateStock(id, { quarterCutMode: false, cutModetransactionCounter: -1 });
         await loadStockData();
       }
     }
-    
     }
-  }, [id, transactionCount]);
+  }, [id, transactionCount, starCounter]);
 
   useEffect(() => {
     loadStockData();
@@ -134,7 +137,7 @@ const StockDetail = () => {
   매수 가이드
   {stock.quarterCutMode === true && transactionCount - stock.cutModetransactionCounter <= 10 && (
     <span>
-      {Array.from({ length: 11-(transactionCount - stock.cutModetransactionCounter) }, () => '⭐').join('')}
+      {Array.from({ length: starCounter + 1 -(transactionCount - stock.cutModetransactionCounter) }, () => '⭐').join('')}
     </span>
   )}
 </h2>
@@ -143,25 +146,25 @@ const StockDetail = () => {
             {stock.quarterCutMode === true ? (
               transactionCount - stock.cutModetransactionCounter === 0 ?(
                 <>
-                <p>지정 회차를 모두 소진하였습니다. 쿼터 손절모드를 시작합니다.</p>
+                <p>지정 회차를 모두 소진하였습니다. 쿼터매도모드를 시작합니다.</p>
                 </>
               ):(
               <>
-                <p>지정 회차를 모두 소진하였습니다. '⭐'일 동안 쿼터 손절모드로 운영합니다.</p>
-                <p>쿼터손절모드 -{stock.profitGoal}% LOC매수: {(averagePrice * (1 - stock.profitGoal / 100)).toFixed(2)} X {Math.floor(stock.perTradeAmount / (averagePrice * (1 - stock.profitGoal / 100)))}개</p>
+                <p>지정 회차를 모두 소진하였습니다. '⭐'일 동안 쿼터매도모드로 운영합니다.</p>
+                <p>쿼터매도모드 -{stock.profitGoal}% LOC 매수: {(averagePrice * (1 - stock.profitGoal / 100)).toFixed(2)} X {Math.floor(cutModePerTradeAmount / (averagePrice * (1 - stock.profitGoal / 100)))}개</p>
               </>
               )
             ) : (
               perstar >= 0 && stock.version === "2.2" ? (
                 <> {/* 2.2 전후반전 매수 시작 */}
                   <h3>전반전 매수</h3>
-                  <p>매수 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}개</p>
-                  <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}개</p>
+                  <p>매수 평단 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}개</p>
+                  <p>매수 별{perstar}% LOC: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01) / 2).toFixed(0)}개</p>
                 </>
               ) : (
                 <> {/* 2.2 후반전 매수 */}
                   <h3>후반전 매수</h3>
-                  <p>매수 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01)).toFixed(0)}개</p>
+                  <p>매수 별{perstar}% LOC: {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X {(stock.perTradeAmount / (averagePrice * (1 + perstar / 100) - 0.01)).toFixed(0)}개</p>
                 </>
               )
             )}
@@ -178,16 +181,16 @@ const StockDetail = () => {
                   {/* quarterCutMode가 시작되었고, transactionCount가 cutModetransactionCounter와 같은 경우 */}
                   {transactionCount - stock.cutModetransactionCounter === 0 ? (
                     <>
-                      <p>지정 회차를 모두 소진하였습니다. 쿼터손절모드를 시작합니다.</p>
-                      <p>쿼터손절모드 MOC매도: {Math.floor(totalQuantity / 4)}개</p>
+                      <p>지정 회차를 모두 소진하였습니다. 쿼터매도모드를 시작합니다.</p>
+                      <p>쿼터매도모드 MOC매도: {Math.floor(totalQuantity / 4)}개</p>
                     </>
                   ) : (
                     <>
                       {/* quarterCutMode가 활성화된 상태에서 10개 미만의 트랜잭션이 발생한 경우 */}
                       {transactionCount - stock.cutModetransactionCounter <= 10 ? (
                         <>
-                          <p>쿼터손절모드 -{stock.profitGoal}% LOC매도: {(averagePrice * (1-stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity / 4)}개</p>
-                          <p>쿼터손절모드 {stock.profitGoal}% after지정매도: {(averagePrice * (1+stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity-(totalQuantity / 4))}개</p>
+                          <p>쿼터매도모드 -{stock.profitGoal}% LOC매도: {(averagePrice * (1-stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity / 4)}개</p>
+                          <p>쿼터매도모드 {stock.profitGoal}% after지정매도: {(averagePrice * (1+stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity-(totalQuantity / 4))}개</p>
                           {/* cutModetransactionCounter가 -1일 때만 업데이트 */}
                           {stock.cutModetransactionCounter === -1 && (() => {
                             stock.cutModetransactionCounter = transactionCount;
