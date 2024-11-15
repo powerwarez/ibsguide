@@ -7,7 +7,7 @@ import TransactionTable from './TransactionTable';
 import DeleteModal from './DeleteModal';
 import ConfirmSettlementModal from './ConfirmSettlementModal';
 
-const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perstar }) => { // perstar 추가
+const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perstar, averagePrice }) => { // perstar 추가
   const [transactions, setTransactions] = useState([]);
   const [isSettled, setIsSettled] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
@@ -59,7 +59,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
     try {
       const newQuantity = type === '매도' ? -Math.abs(transactionInput.quantity) : parseInt(transactionInput.quantity, 10);
       const timestamp = new Date().getTime();
-
+  
       const newTransaction = {
         ...transactionInput,
         id: uuidv4(),
@@ -68,14 +68,28 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
         timestamp,
         stockId,
       };
-
+  
       await addTransaction(stockId, newTransaction);
-
+  
       const updatedTransactions = [newTransaction, ...transactions];
       setTransactions(updatedTransactions);
-
-      // 총 수량 계산 후 정산 여부 결정
+  
+      const stock = await getStockById(stockId);
       const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
+  
+      // 매도 시 조건 확인 및 investment와 perTradeAmount 업데이트
+      if (type === '매도' && stock.version === '3.0' && transactionInput.price > averagePrice) {
+        const additionalInvestment = (transactionInput.price * Math.abs(newQuantity)) / 2;
+        const updatedInvestment = stock.investment + additionalInvestment;
+        const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
+  
+        // 데이터베이스 업데이트
+        await updateStock(stockId, { 
+          investment: updatedInvestment,
+          perTradeAmount: updatedPerTradeAmount
+        });
+      }
+  
       if (totalQuantity === 0 && type === '매도') {
         const date = new Date(transactionInput.date);
         const formattedDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
@@ -84,6 +98,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
       } else {
         resetTransactionInput();
       }
+  
       await loadTransactions();
       onAddTransaction?.();
     } catch (error) {

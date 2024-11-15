@@ -223,7 +223,7 @@ const StockDetail = () => {
         )}
       </div>
       
-      <TransactionList stockId={id} perstar={perstar} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
+      <TransactionList stockId={id} perstar={perstar} averagePrice={averagePrice} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
     </div>
   );
 };
