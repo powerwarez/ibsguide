@@ -146,12 +146,13 @@ const StockDetail = () => {
             {stock.quarterCutMode === true ? (
               transactionCount - stock.cutModetransactionCounter === 0 ?(
                 <>
-                <p>지정 회차를 모두 소진하였습니다. 쿼터매도모드를 시작합니다.</p>
+                <p>지정 회차를 모두 소진하였습니다. 쿼터모드기간을 시작합니다.</p>
+                <p>오늘은 매수가 없습니다.</p>
                 </>
               ):(
               <>
-                <p>지정 회차를 모두 소진하였습니다. '⭐'일 동안 쿼터매도모드로 운영합니다.</p>
-                <p>쿼터매도모드 -{stock.profitGoal}% LOC 매수: {(averagePrice * (1 - stock.profitGoal / 100)).toFixed(2)} X {Math.floor(cutModePerTradeAmount / (averagePrice * (1 - stock.profitGoal / 100)))}개</p>
+                <p>지정 회차를 모두 소진하였습니다. '⭐'일 동안 쿼터모드기간을 운영합니다.</p>
+                <p>쿼터모드기간 -{stock.profitGoal}% LOC 매수: {(averagePrice * (1 - stock.profitGoal / 100)).toFixed(2)} X {Math.floor(cutModePerTradeAmount / (averagePrice * (1 - stock.profitGoal / 100)))}개</p>
               </>
               )
             ) : (
@@ -181,16 +182,16 @@ const StockDetail = () => {
                   {/* quarterCutMode가 시작되었고, transactionCount가 cutModetransactionCounter와 같은 경우 */}
                   {transactionCount - stock.cutModetransactionCounter === 0 ? (
                     <>
-                      <p>지정 회차를 모두 소진하였습니다. 쿼터매도모드를 시작합니다.</p>
-                      <p>쿼터매도모드 MOC매도: {Math.floor(totalQuantity / 4)}개</p>
+                      <p>지정 회차를 모두 소진하였습니다. 쿼터모드기간을 시작합니다.</p>
+                      <p>쿼터모드기간 MOC매도: {Math.floor(totalQuantity / 4)}개</p>
                     </>
                   ) : (
                     <>
                       {/* quarterCutMode가 활성화된 상태에서 10개 미만의 트랜잭션이 발생한 경우 */}
                       {transactionCount - stock.cutModetransactionCounter <= 10 ? (
                         <>
-                          <p>쿼터매도모드 -{stock.profitGoal}% LOC매도: {(averagePrice * (1-stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity / 4)}개</p>
-                          <p>쿼터매도모드 {stock.profitGoal}% after지정매도: {(averagePrice * (1+stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity-(totalQuantity / 4))}개</p>
+                          <p>쿼터모드기간 -{stock.profitGoal}% LOC매도: {(averagePrice * (1-stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity / 4)}개</p>
+                          <p>쿼터모드기간 {stock.profitGoal}% after지정매도: {(averagePrice * (1+stock.profitGoal/100)).toFixed(2)} X {Math.floor(totalQuantity-(totalQuantity / 4))}개</p>
                           {/* cutModetransactionCounter가 -1일 때만 업데이트 */}
                           {stock.cutModetransactionCounter === -1 && (() => {
                             stock.cutModetransactionCounter = transactionCount;
