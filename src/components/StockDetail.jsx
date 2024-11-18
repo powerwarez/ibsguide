@@ -213,8 +213,8 @@ const StockDetail = () => {
                 ) : (
                   <>
                     {/* quarterCutMode가 비활성화된 상태의 일반 매도 안내 */}
-                    <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}</p>
-                    <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal / 100))).toFixed(2)} X {(totalQuantity - (totalQuantity / 4).toFixed(0)).toFixed(0)}</p>
+                    <p>매도 LOC 별지점 {perstar}%: {(averagePrice * (1 + perstar / 100)).toFixed(2)} X {(totalQuantity / 4).toFixed(0)}개</p>
+                    <p>매도 After지정: {(averagePrice * (1 + (stock.profitGoal / 100))).toFixed(2)} X {(totalQuantity - (totalQuantity / 4).toFixed(0)).toFixed(0)}개</p>
                   </>
                 )}
               </>
