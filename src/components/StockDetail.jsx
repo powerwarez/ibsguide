@@ -156,7 +156,7 @@ const StockDetail = () => {
               </>
               )
             ) : (
-              perstar >= 0 && stock.version === "2.2" ? (
+              perstar >= 0 && (stock.version === "2.2" || stock.version === "3.0") ? (
                 <> {/* 2.2 전후반전 매수 시작 */}
                   <h3>전반전 매수</h3>
                   <p>매수 평단 LOC: {averagePrice.toFixed(2)} X {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}개</p>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate } from 'react-router-dom'; // useNavigate 추가
+import { useNavigate } from 'react-router-dom';
 import { addTransaction, getTransactionsByStockId, deleteTransaction, updateStock, getStockById } from '../db';
 import TransactionForm from './TransactionForm';
 import TransactionTable from './TransactionTable';
 import DeleteModal from './DeleteModal';
 import ConfirmSettlementModal from './ConfirmSettlementModal';
 
-const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perstar, averagePrice }) => { // perstar 추가
+const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perstar, averagePrice }) => {
   const [transactions, setTransactions] = useState([]);
   const [isSettled, setIsSettled] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
@@ -21,7 +21,19 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [settlementDate, setSettlementDate] = useState(null);
-  const navigate = useNavigate(); // useNavigate 사용
+  const [originalInvestment, setOriginalInvestment] = useState(null);
+  const [originalPerTradeAmount, setOriginalPerTradeAmount] = useState(null);
+  const navigate = useNavigate();
+
+  // 초기 investment 및 perTradeAmount를 저장
+  useEffect(() => {
+    const loadStockData = async () => {
+      const stock = await getStockById(stockId);
+      setOriginalInvestment(stock.investment);
+      setOriginalPerTradeAmount(stock.perTradeAmount);
+    };
+    loadStockData();
+  }, [stockId]);
 
   // 트랜잭션 및 종목 정보를 로드하는 함수
   const loadTransactions = useCallback(async () => {
@@ -44,7 +56,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
     try {
       const stock = await getStockById(stockId);
       const updatedName = `${stock.name}(${settlementDate} 정산)`;
-
       await updateStock(stockId, { isSettled: true, name: updatedName });
       setShowSettlementModal(false);
       setIsSettled(true);
@@ -120,26 +131,34 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   };
 
   // 트랜잭션 삭제 확인 함수
-const handleDeleteConfirm = async (transactionId) => {
-  try {
-    await deleteTransaction(transactionId);
-    setTransactions((prevTransactions) => prevTransactions.filter((txn) => txn.id !== transactionId));
-    
-    // 트랜잭션 삭제 후 quarterCutMode 업데이트
-    const stock = await getStockById(stockId);
-    const profitGoalWithPerstar = stock.profitGoal + parseFloat(perstar); // perstar를 숫자로 변환하여 계산
+  const handleDeleteConfirm = async (transactionId) => {
+    try {
+      const transactionToRemove = transactions.find(txn => txn.id === transactionId);
+      await deleteTransaction(transactionId);
+      setTransactions((prevTransactions) => prevTransactions.filter((txn) => txn.id !== transactionId));
+      
+      const stock = await getStockById(stockId);
+      
+      if (stock.version === '3.0' && transactionToRemove.type === '매도' && transactionToRemove.price > averagePrice) {
+        // 원래 investment와 perTradeAmount로 되돌리기
+        await updateStock(stockId, { 
+          investment: originalInvestment,
+          perTradeAmount: originalPerTradeAmount,
+        });
+      }
 
-    if (profitGoalWithPerstar >= 1) {
-      await updateStock(stockId, { quarterCutMode: false, cutModetransactionCounter: -1 });
+      // quarterCutMode 업데이트 로직
+      const profitGoalWithPerstar = stock.profitGoal + parseFloat(perstar);
+      if (profitGoalWithPerstar >= 1) {
+        await updateStock(stockId, { quarterCutMode: false, cutModetransactionCounter: -1 });
+      }
+
+      onDeleteTransaction?.();
+      setTransactionToDelete(null);
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
     }
-
-    // 삭제 후 onDeleteTransaction 호출로 상태 업데이트 요청
-    onDeleteTransaction?.();
-    setTransactionToDelete(null);
-  } catch (error) {
-    console.error("Error deleting transaction:", error);
-  }
-};
+  };
 
   return (
     <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
@@ -173,23 +192,23 @@ const handleDeleteConfirm = async (transactionId) => {
       {/* 매수/매도 버튼 */}
       {!isSettled && !isBuying && !isSelling && (
         <>
-              <h2 className="text-2xl font-semibold" style={{ color: "black" }}>매수 매도 리스트</h2>
-              <div className="flex justify-between mt-6">
-                <button
-                  onClick={() => { setIsBuying(true); setIsSelling(false); }}
-                  className="w-full bg-red-500 text-white py-2 rounded mr-2"
-                >
-                  매수
-                </button>
-                <button
-                  onClick={() => { setIsSelling(true); setIsBuying(false); }}
-                  className="w-full bg-blue-500 text-white py-2 rounded"
-                >
-                  매도
-                </button>
-              </div>
+          <h2 className="text-2xl font-semibold" style={{ color: "black" }}>매수 매도 리스트</h2>
+          <div className="flex justify-between mt-6">
+            <button
+              onClick={() => { setIsBuying(true); setIsSelling(false); }}
+              className="w-full bg-red-500 text-white py-2 rounded mr-2"
+            >
+              매수
+            </button>
+            <button
+              onClick={() => { setIsSelling(true); setIsBuying(false); }}
+              className="w-full bg-blue-500 text-white py-2 rounded"
+            >
+              매도
+            </button>
+          </div>
         </>
-            )}
+      )}
 
       {/* 거래 내역 테이블 */}
       <TransactionTable
