@@ -5,8 +5,8 @@ const AddStock = ({ onAdd }) => {
   const [name, setName] = useState('TQQQ'); // 종목명
   const [version, setVersion] = useState('2.2'); // 투자 버전 선택
   const [investment, setInvestment] = useState(0); // 투자 금액
-  const [profitGoal, setProfitGoal] = useState(0); // 수익률
-  const [divisionCount, setDivisionCount] = useState(1); // 분할 횟수
+  const [profitGoal, setProfitGoal] = useState(15); // 수익률
+  const [divisionCount, setDivisionCount] = useState(20); // 분할 횟수
   const [perTradeAmount, setPerTradeAmount] = useState(0); // 1회 매수금
   const [profit, setProfit] = useState(0); // 현재 수익
   const [isSettled] = useState(false); // 정산 여부 (초기값 false)

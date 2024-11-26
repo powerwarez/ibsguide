@@ -90,7 +90,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   
       // 매도 시 조건 확인 및 investment와 perTradeAmount 업데이트
       if (type === '매도' && stock.version === '3.0' && transactionInput.price > averagePrice) {
-        const additionalInvestment = (transactionInput.price * Math.abs(newQuantity)) / 2;
+        const additionalInvestment = ((transactionInput.price - averagePrice) * Math.abs(newQuantity)) / 2;
         const updatedInvestment = stock.investment + additionalInvestment;
         const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
   

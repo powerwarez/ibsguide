@@ -19,15 +19,19 @@ const dbPromise = openDB('stocks-database', 2, {
 
 // 운용 종목 저장
 export async function saveStock(stock) {
-  const db = await dbPromise;
-  const stockWithId = {
-    id: uuidv4(),
-    quantity: 0,
-    averagePrice: 0,
-    isSettled: false, // 초기 정산 상태 설정
-    ...stock,
-  };
-  await db.add('stocks', stockWithId);
+  try {
+    const db = await dbPromise;
+    const stockWithId = {
+      id: uuidv4(),
+      quantity: 0,
+      averagePrice: 0,
+      isSettled: false, // 초기 정산 상태 설정
+      ...stock,
+    };
+    await db.add('stocks', stockWithId);
+  } catch (error) {
+    console.error('Error saving stock:', error);
+  }
 }
 
 // 모든 운용 종목 가져오기
