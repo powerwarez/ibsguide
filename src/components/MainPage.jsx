@@ -75,7 +75,7 @@ const MainPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">
-      <h1 className="text-3xl font-bold mb-6 text-center">무한매수</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">무한매수 가이드</h1>
 
       {/* 정산됨 탭의 전체 수익금 카드 */}
       {selectedTab === '정산됨' && (
