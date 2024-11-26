@@ -27,12 +27,14 @@ const TransactionTable = ({ transactions, isSettled, onDeleteClick }) => {
             <td className="p-2 border">${transaction.fee}</td>
             <td className="p-2 border text-center">
               {!isSettled && (
-                <button
-                  onClick={() => onDeleteClick(transaction)}
-                  className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                >
-                  X
-                </button>
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => onDeleteClick(transaction)}
+                    className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  >
+                    X
+                  </button>
+                </div>
               )}
             </td>
           </tr>

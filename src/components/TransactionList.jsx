@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
-import { addTransaction, getTransactionsByStockId, deleteTransaction, updateStock, getStockById } from '../db';
+import { addTransaction, getTransactionsByStockId, deleteTransaction, updateStock, getStockById, saveOriginalInvestment, getOriginalInvestment } from '../db';
 import TransactionForm from './TransactionForm';
 import TransactionTable from './TransactionTable';
 import DeleteModal from './DeleteModal';
@@ -21,21 +21,22 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [settlementDate, setSettlementDate] = useState(null);
+  // eslint-disable-next-line
   const [originalInvestment, setOriginalInvestment] = useState(null);
+  // eslint-disable-next-line
   const [originalPerTradeAmount, setOriginalPerTradeAmount] = useState(null);
   const navigate = useNavigate();
 
-  // 초기 investment 및 perTradeAmount를 저장
   useEffect(() => {
     const loadStockData = async () => {
       const stock = await getStockById(stockId);
-      setOriginalInvestment(stock.investment);
+      const originalInvestmentData = await getOriginalInvestment(stockId);
+      setOriginalInvestment(originalInvestmentData?.data || stock.investment);
       setOriginalPerTradeAmount(stock.perTradeAmount);
     };
     loadStockData();
   }, [stockId]);
 
-  // 트랜잭션 및 종목 정보를 로드하는 함수
   const loadTransactions = useCallback(async () => {
     try {
       const storedTransactions = await getTransactionsByStockId(stockId);
@@ -51,7 +52,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
     loadTransactions();
   }, [loadTransactions]);
 
-  // 정산 처리 함수
   const handleSettlement = async () => {
     try {
       const stock = await getStockById(stockId);
@@ -65,7 +65,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
     }
   };
 
-  // 매수/매도 트랜잭션 추가 함수
   const handleTransactionSubmit = async (type) => {
     try {
       const newQuantity = type === '매도' ? -Math.abs(transactionInput.quantity) : parseInt(transactionInput.quantity, 10);
@@ -88,17 +87,19 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
       const stock = await getStockById(stockId);
       const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
   
-      // 매도 시 조건 확인 및 investment와 perTradeAmount 업데이트
       if (type === '매도' && stock.version === '3.0' && transactionInput.price > averagePrice) {
         const additionalInvestment = ((transactionInput.price - averagePrice) * Math.abs(newQuantity)) / 2;
         const updatedInvestment = stock.investment + additionalInvestment;
         const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
   
-        // 데이터베이스 업데이트
         await updateStock(stockId, { 
           investment: updatedInvestment,
           perTradeAmount: updatedPerTradeAmount
         });
+
+        const originalData = await getOriginalInvestment(stockId) || { data: [] };
+        originalData.data.push({ id: newTransaction.id, additionalInvestment });
+        await saveOriginalInvestment(stockId, originalData.data);
       }
   
       if (totalQuantity === 0 && type === '매도') {
@@ -118,7 +119,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
     }
   };
 
-  // 트랜잭션 입력 필드를 초기화하는 함수
   const resetTransactionInput = () => {
     setTransactionInput({
       date: new Date().toISOString().slice(0, 10),
@@ -130,7 +130,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
     setIsSelling(false);
   };
 
-  // 트랜잭션 삭제 확인 함수
   const handleDeleteConfirm = async (transactionId) => {
     try {
       const transactionToRemove = transactions.find(txn => txn.id === transactionId);
@@ -139,18 +138,19 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
       
       const stock = await getStockById(stockId);
       
-      if (stock.version === '3.0' && transactionToRemove.type === '매도' && transactionToRemove.price > averagePrice) {
-        // 원래 investment와 perTradeAmount로 되돌리기
-        await updateStock(stockId, { 
-          investment: originalInvestment,
-          perTradeAmount: originalPerTradeAmount,
-        });
-      }
-
-      // quarterCutMode 업데이트 로직
-      const profitGoalWithPerstar = stock.profitGoal + parseFloat(perstar);
-      if (profitGoalWithPerstar >= 1) {
-        await updateStock(stockId, { quarterCutMode: false, cutModetransactionCounter: -1 });
+      if (stock.version === '3.0' && transactionToRemove.type === '매도') {
+        const originalData = await getOriginalInvestment(stockId);
+        const sellTransaction = originalData?.data.find(txn => txn.id === transactionId);
+        if (sellTransaction) {
+          const updatedInvestment = stock.investment - (sellTransaction.additionalInvestment);
+          const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
+          await updateStock(stockId, { 
+            investment: updatedInvestment,
+            perTradeAmount: updatedPerTradeAmount
+          });
+          originalData.data = originalData.data.filter(txn => txn.id !== transactionId);
+          await saveOriginalInvestment(stockId, originalData.data);
+        }
       }
 
       onDeleteTransaction?.();
@@ -177,7 +177,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
         />
       )}
 
-      {/* 매수/매도 입력 폼 */}
       {(!isSettled && (isBuying || isSelling)) && (
         <TransactionForm
           transactionInput={transactionInput}
@@ -189,7 +188,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
         />
       )}
 
-      {/* 매수/매도 버튼 */}
       {!isSettled && !isBuying && !isSelling && (
         <>
           <h2 className="text-2xl font-semibold" style={{ color: "black" }}>매수 매도 리스트</h2>
@@ -210,7 +208,6 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
         </>
       )}
 
-      {/* 거래 내역 테이블 */}
       <TransactionTable
         transactions={transactions}
         isSettled={isSettled}

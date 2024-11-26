@@ -14,6 +14,9 @@ const dbPromise = openDB('stocks-database', 2, {
       const transactionStore = db.transaction('transactions', 'readwrite').store;
       transactionStore.createIndex('stockId', 'stockId', { unique: false });
     }
+    if (!db.objectStoreNames.contains('originalInvestment')) {
+      db.createObjectStore('originalInvestment', { keyPath: 'stockId' });
+    }
   },
 });
 
@@ -102,4 +105,16 @@ export async function updateStock(stockId, updatedData) {
     await store.put(updatedStock);
   }
   await tx.done;
+}
+
+// originalInvestment 저장
+export async function saveOriginalInvestment(stockId, data) {
+  const db = await dbPromise;
+  await db.put('originalInvestment', { stockId, data });
+}
+
+// originalInvestment 가져오기
+export async function getOriginalInvestment(stockId) {
+  const db = await dbPromise;
+  return await db.get('originalInvestment', stockId);
 }
