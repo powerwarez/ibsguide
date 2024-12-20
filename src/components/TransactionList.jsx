@@ -21,7 +21,9 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [settlementDate, setSettlementDate] = useState(null);
+  // eslint-disable-next-line 
   const [originalInvestment, setOriginalInvestment] = useState(null);
+  // eslint-disable-next-line 
   const [originalPerTradeAmount, setOriginalPerTradeAmount] = useState(null);
   const navigate = useNavigate();
 
