@@ -226,6 +226,7 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
     };
     console.log("ticker:", ticker);
     loadStockData();
+    // eslint-disable-next-line 
   }, [ticker, startDate, transactions]);
 
   if (loading) {
