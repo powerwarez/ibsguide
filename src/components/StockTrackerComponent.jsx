@@ -119,7 +119,7 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
       cumulativePrices.push({ date, averagePrice: totalQuantity > 0 ? averagePrice.toFixed(2) : null });
     });
 
-    // 누락된 날짜에 대해 ���일 균가 유지
+    // 누락된 날짜에 대해 일 균가 유지
     let lastPrice = null;
     const filledCumulativePrices = dateRange.map(date => {
       const existing = cumulativePrices.find(item => item.date === date);
@@ -140,6 +140,17 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
       date: new Date(txn.date).toISOString().split('T')[0],
       price: parseFloat(txn.price) // 숫자로 변환
     }));
+
+  const shouldFetchNew = (latestData) => {
+    const now = new Date();
+    const utcNow = new Date(now.toISOString());
+    const latestUpdate = new Date(latestData[0].updated_at);
+
+    // UTC 기준으로 자정 이후에 업데이트
+    return !latestData.length || 
+           utcNow.getUTCDate() !== latestUpdate.getUTCDate();
+  };
+
   useEffect(() => {
     const loadStockData = async () => {
       try {
@@ -151,15 +162,11 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
 
         if (fetchError) throw fetchError;
 
-        const now = new Date();
-        const koreanTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-        const shouldFetchNew = !latestData.length || 
-                             !isSameDate(new Date(latestData[0].updated_at), koreanTime) ||
-                             (isKoreaMarketOpen() && latestData[0].updated_at < koreanTime.setHours(9, 0, 0, 0));
+        const shouldFetch = shouldFetchNew(latestData);
 
         let stockPrices;
 
-        if (shouldFetchNew) {
+        if (shouldFetch) {
           const [soxlData, tqqqData] = await Promise.all([
             fetchYahooData('SOXL'),
             fetchYahooData('TQQQ')
@@ -205,7 +212,6 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
 
         const cumulativeAveragePrices = calculateCumulativeAveragePrices(transactions, startDate, endDate);
 
-        // stockData와 cumulativeAveragePrices를 결합
         const combinedData = filteredData.map(item => {
           const averagePriceData = cumulativeAveragePrices.find(avg => avg.date === item.date);
           const sellPoint = sellPoints.find(sell => sell.date === item.date);
