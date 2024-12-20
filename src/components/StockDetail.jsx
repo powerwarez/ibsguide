@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStocks, getTransactionsByStockId, updateStock } from '../db';
 import TransactionList from './TransactionList';
+import StockTrackerComponent from './StockTrackerComponent';
 
 const StockDetail = () => {
   const { id } = useParams();
@@ -14,6 +15,8 @@ const StockDetail = () => {
   const [starCounter, setStarCounter] = useState(0);
   const [cutModePerTradeAmount, setCutModePerTradeAmount] = useState(0);
   const [calculatedValueT, setCalculatedValueT] = useState(0);
+  const [earliestTransactionDate, setEarliestTransactionDate] = useState(null);
+  const [stockTransactions, setStockTransactions] = useState([]);
 
   useEffect(() => {
     if (stock) {
@@ -32,6 +35,7 @@ const StockDetail = () => {
       setStock(foundStock);
 
       const stockTransactions = (await getTransactionsByStockId(id)).sort((a, b) => a.timestamp - b.timestamp);
+      setStockTransactions(stockTransactions);
       setTransactionCount(stockTransactions.length);
 
       let totalQuantity = 0;
@@ -79,7 +83,7 @@ const StockDetail = () => {
         await updateStock(id, { quarterCutMode: true, cutModetransactionCounter: stockTransactions.length });
         // 업데이트된 데이터 다시 로드
         await loadStockData();
-        return; // 중복 호출 방지
+        return;
       }
 
       const postCutTransactions = stockTransactions.slice(foundStock.cutModetransactionCounter);
@@ -124,17 +128,26 @@ const StockDetail = () => {
         <h1 className="text-3xl font-bold">종목 세부 정보</h1>
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold">{stock.name} (v{stock.version})</h2>
-        <p>총 투자 금액: ${stock.investment.toFixed(2)}</p>
-        <p>분할 횟수: {stock.divisionCount}회</p>
-        <p>1회 매수 금액: ${stock.perTradeAmount.toFixed(2)}</p>
-        <p>목표 수익률: {stock.profitGoal}%</p>
-        <p>투자 손익 금액: <span style={{ color: stock.profit > 0 ? 'red' : 'blue' }}>${stock.profit.toFixed(2)}</span></p>
-        <p>평균가: ${averagePrice.toFixed(2)}</p>
-        <p>총 수량: {totalQuantity}</p>
-        <p>총 매수금액: ${(averagePrice.toFixed(2) * totalQuantity).toFixed(2)}({calculatedValueT}회)</p>
-      </div>
+      
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold">{stock.name} (v{stock.version})</h2>
+          <p>총 투자 금액: ${stock.investment.toFixed(2)}</p>
+          <p>분할 횟수: {stock.divisionCount}회</p>
+          <p>1회 매수 금액: ${stock.perTradeAmount.toFixed(2)}</p>
+          <p>목표 수익률: {stock.profitGoal}%</p>
+          <p>투자 손익 금액: <span style={{ color: stock.profit > 0 ? 'red' : 'blue' }}>${stock.profit.toFixed(2)}</span></p>
+          <p>평균가: ${averagePrice.toFixed(2)}</p>
+          <p>총 수량: {totalQuantity}</p>
+          <p>총 매수금액: ${(averagePrice.toFixed(2) * totalQuantity).toFixed(2)}({calculatedValueT}회)</p>
+        </div>
+        <div className="mb-6">
+          <StockTrackerComponent 
+            ticker={stock.name} 
+            startDate={earliestTransactionDate} 
+            transactions={stockTransactions}
+          />
+        </div>
+
 
       <div className="bg-gray-100 p-4 rounded-lg shadow-lg mt-6">
       <h2 className="text-2xl font-semibold" style={{ color: "red" }}>
@@ -257,7 +270,7 @@ const StockDetail = () => {
         )}
       </div>
       
-      <TransactionList stockId={id} perstar={perstar} averagePrice={averagePrice} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} />
+      <TransactionList stockId={id} perstar={perstar} averagePrice={averagePrice} onAddTransaction={handleTransactionUpdate} onDeleteTransaction={handleTransactionUpdate} onEarliestDateChange={setEarliestTransactionDate} />
     </div>
   );
 };

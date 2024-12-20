@@ -7,7 +7,7 @@ import TransactionTable from './TransactionTable';
 import DeleteModal from './DeleteModal';
 import ConfirmSettlementModal from './ConfirmSettlementModal';
 
-const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perstar, averagePrice }) => {
+const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEarliestDateChange, perstar, averagePrice }) => {
   const [transactions, setTransactions] = useState([]);
   const [isSettled, setIsSettled] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
@@ -21,9 +21,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [settlementDate, setSettlementDate] = useState(null);
-  // eslint-disable-next-line
   const [originalInvestment, setOriginalInvestment] = useState(null);
-  // eslint-disable-next-line
   const [originalPerTradeAmount, setOriginalPerTradeAmount] = useState(null);
   const navigate = useNavigate();
 
@@ -40,13 +38,21 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   const loadTransactions = useCallback(async () => {
     try {
       const storedTransactions = await getTransactionsByStockId(stockId);
+      console.log("Loaded transactions:", storedTransactions);
+
       const stock = await getStockById(stockId);
-      setTransactions(storedTransactions.sort((a, b) => b.timestamp - a.timestamp));
+      setTransactions(storedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       setIsSettled(stock?.isSettled || false);
+
+      if (storedTransactions.length > 0) {
+        const earliestDate = new Date(Math.min(...storedTransactions.map(txn => new Date(txn.date).getTime())));
+        console.log("Earliest transaction date:", earliestDate);
+        onEarliestDateChange(earliestDate.toISOString().slice(0, 10));
+      }
     } catch (error) {
       console.error("Error loading transactions:", error);
     }
-  }, [stockId]);
+  }, [stockId, onEarliestDateChange]);
 
   useEffect(() => {
     loadTransactions();
@@ -79,6 +85,8 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
         stockId,
       };
   
+      console.log("New transaction:", newTransaction);
+  
       await addTransaction(stockId, newTransaction);
   
       const updatedTransactions = [newTransaction, ...transactions];
@@ -86,6 +94,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, perst
   
       const stock = await getStockById(stockId);
       const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
+      console.log("Total quantity after transaction:", totalQuantity);
   
       if (type === '매도' && stock.version === '3.0' && transactionInput.price > averagePrice) {
         const additionalInvestment = ((transactionInput.price - averagePrice) * Math.abs(newQuantity)) / 2;

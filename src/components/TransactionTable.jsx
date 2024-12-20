@@ -21,7 +21,7 @@ const TransactionTable = ({ transactions, isSettled, onDeleteClick }) => {
             <td className={`p-2 border ${transaction.type === '매수' ? 'text-red-500' : 'text-blue-500'}`}>
               {transaction.type}
             </td>
-            <td className="p-2 border">{transaction.date}</td>
+            <td className="p-2 border">{transaction.date.replace(/(\d{4})-(\d{2})-(\d{2})/, (match, p1, p2, p3) => `${p1.slice(2)}.${p2}.${p3}.`)}</td>
             <td className="p-2 border">${transaction.price}</td>
             <td className="p-2 border">{Math.abs(transaction.quantity)}</td>
             <td className="p-2 border">${transaction.fee}</td>
