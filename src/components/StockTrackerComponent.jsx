@@ -53,19 +53,6 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isKoreaMarketOpen = () => {
-    const now = new Date();
-    const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-    const hours = koreaTime.getHours();
-    return hours >= 9;
-  };
-
-  const isSameDate = (date1, date2) => {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
-  };
-
   const fetchYahooData = async (ticker) => {
     const response = await fetch(
       `/api/v8/finance/chart/${ticker}?interval=1d&range=1y`
