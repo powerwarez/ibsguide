@@ -302,6 +302,16 @@ const StockDetail = () => {
                 <h3 style={{ color: "red", fontWeight: "bold" }}>
                   &lt;전반전 매수&gt;
                 </h3>
+                <p>
+                  매수 별{perstar}% LOC: $
+                  {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X{" "}
+                  {(
+                    stock.perTradeAmount /
+                    (averagePrice * (1 + perstar / 100) - 0.01) /
+                    2
+                  ).toFixed(0)}
+                  개
+                </p>
                 <details>
                   <summary>
                     매수 평단 LOC: ${averagePrice.toFixed(2)} X{" "}
@@ -318,16 +328,6 @@ const StockDetail = () => {
                     개
                   </p>
                 </details>
-                <p>
-                  매수 별{perstar}% LOC: $
-                  {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X{" "}
-                  {(
-                    stock.perTradeAmount /
-                    (averagePrice * (1 + perstar / 100) - 0.01) /
-                    2
-                  ).toFixed(0)}
-                  개
-                </p>
                 <br></br>
                 <h3 style={{ color: "red" }}>하락시 추가 LOC매수</h3>
                 {(() => {
@@ -344,9 +344,9 @@ const StockDetail = () => {
                     );
                     results.push(
                       <p key={i}>
-                        {(stock.perTradeAmount / Math.floor(totalbuy)).toFixed(
-                          2
-                        )}{" "}
+                        {Math.floor(
+                          (stock.perTradeAmount / Math.floor(totalbuy)) * 100
+                        ) / 100}{" "}
                         X 1개
                       </p>
                     );
@@ -382,9 +382,9 @@ const StockDetail = () => {
                     ).toFixed(0);
                     results.push(
                       <p key={i}>
-                        {(stock.perTradeAmount / Math.floor(totalbuy)).toFixed(
-                          2
-                        )}{" "}
+                        {Math.floor(
+                          (stock.perTradeAmount / Math.floor(totalbuy)) * 100
+                        ) / 100}{" "}
                         X 1개
                       </p>
                     );
