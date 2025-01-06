@@ -302,35 +302,44 @@ const StockDetail = () => {
               <>
                 {" "}
                 {/* 2.2 전후반전 매수 시작 */}
-                <h3 style={{ color: "red", fontWeight: "bold" }}>
-                  &lt;전반전 매수&gt;
-                </h3>
-                <p>
-                  매수 별{perstar}% LOC: $
-                  {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X{" "}
-                  {(
+                {(() => {
+                  const buyquantity = Math.floor(
                     stock.perTradeAmount /
-                    (averagePrice * (1 + perstar / 100) - 0.01) /
-                    2
-                  ).toFixed(0)}
-                  개
-                </p>
-                <details>
-                  <summary>
-                    매수 평단 LOC: ${averagePrice.toFixed(2)} X{" "}
-                    {(stock.perTradeAmount / averagePrice / 2).toFixed(0)}개
-                  </summary>
-                  <p>
-                    큰수매수(종가112%)LOC: $
-                    {(previousClosePrice * 1.12).toFixed(2)} X{" "}
-                    {(
-                      stock.perTradeAmount /
-                      (previousClosePrice * 1.12) /
+                      (averagePrice * (1 + perstar / 100) - 0.01) /
                       2
-                    ).toFixed(0)}
-                    개
-                  </p>
-                </details>
+                  );
+                  return (
+                    <>
+                      <h3 style={{ color: "red", fontWeight: "bold" }}>
+                        &lt;전반전 매수&gt;
+                      </h3>
+                      <p>
+                        매수 별{perstar}% LOC: $
+                        {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)}{" "}
+                        X {buyquantity}개
+                      </p>
+                      <details>
+                        <summary>
+                          매수 평단 LOC: ${averagePrice.toFixed(2)} X{" "}
+                          {Math.floor(
+                            stock.perTradeAmount / averagePrice - buyquantity
+                          )}
+                          개
+                        </summary>
+                        <p>
+                          큰수매수(종가112%)LOC: $
+                          {(previousClosePrice * 1.12).toFixed(2)} X{" "}
+                          {(
+                            stock.perTradeAmount /
+                            (previousClosePrice * 1.12) /
+                            2
+                          ).toFixed(0)}
+                          개
+                        </p>
+                      </details>
+                    </>
+                  );
+                })()}
                 <br></br>
                 <h3 style={{ color: "red" }}>하락시 추가 LOC매수</h3>
                 {(() => {
