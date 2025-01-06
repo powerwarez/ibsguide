@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid'; // UUID 라이브러리
+import React, { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid"; // UUID 라이브러리
 
 const AddStock = ({ onAdd }) => {
-  const [name, setName] = useState('TQQQ'); // 종목명
-  const [version, setVersion] = useState('2.2'); // 투자 버전 선택
+  const [name, setName] = useState("TQQQ"); // 종목명
+  const [version, setVersion] = useState("2.2"); // 투자 버전 선택
   const [investment, setInvestment] = useState(0); // 투자 금액
   const [profitGoal, setProfitGoal] = useState(15); // 수익률
   const [divisionCount, setDivisionCount] = useState(20); // 분할 횟수
@@ -26,10 +26,10 @@ const AddStock = ({ onAdd }) => {
     e.preventDefault();
 
     // 새로운 종목 데이터 생성
-    const newStock = { 
+    const newStock = {
       id: uuidv4(), // 고유 ID 생성
-      name, 
-      version, 
+      name,
+      version,
       investment: parseFloat(investment), // 숫자로 변환
       profitGoal: parseFloat(profitGoal), // 숫자로 변환
       divisionCount: parseInt(divisionCount), // 숫자로 변환
@@ -38,14 +38,14 @@ const AddStock = ({ onAdd }) => {
       isSettled, // 정산 여부
       quarterCutMode,
       cutModetransactionCounter,
-      originalInvestment
+      originalInvestment,
     };
-    
+
     try {
       // 상위 컴포넌트에 newStock 전달
       await onAdd(newStock);
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error("Error in handleSubmit:", error);
     }
   };
 
@@ -53,7 +53,10 @@ const AddStock = ({ onAdd }) => {
   const preventScroll = (e) => e.target.blur();
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 mt-6 rounded-lg shadow-md">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-6 mt-6 rounded-lg shadow-md"
+    >
       <h3 className="text-lg font-medium mb-4">운용 종목 추가</h3>
 
       {/* 종목명 선택 - 라디오 버튼으로 변경 */}
@@ -63,7 +66,7 @@ const AddStock = ({ onAdd }) => {
           <input
             type="radio"
             value="TQQQ"
-            checked={name === 'TQQQ'}
+            checked={name === "TQQQ"}
             onChange={(e) => setName(e.target.value)}
             className="mr-2"
           />
@@ -73,7 +76,7 @@ const AddStock = ({ onAdd }) => {
           <input
             type="radio"
             value="SOXL"
-            checked={name === 'SOXL'}
+            checked={name === "SOXL"}
             onChange={(e) => setName(e.target.value)}
             className="mr-2"
           />
@@ -96,6 +99,7 @@ const AddStock = ({ onAdd }) => {
       <label className="block mb-2">투자 금액($):</label>
       <input
         type="number"
+        inputMode="numeric"
         value={investment}
         onChange={(e) => setInvestment(e.target.value)}
         onWheel={preventScroll}
@@ -107,6 +111,7 @@ const AddStock = ({ onAdd }) => {
       <label className="block mb-2">분할 횟수:</label>
       <input
         type="number"
+        inputMode="numeric"
         value={divisionCount}
         onChange={(e) => setDivisionCount(e.target.value)}
         onWheel={preventScroll}
@@ -118,6 +123,7 @@ const AddStock = ({ onAdd }) => {
       <label className="block mb-2">1회 매수금($):</label>
       <input
         type="number"
+        inputMode="numeric"
         value={perTradeAmount}
         disabled
         className="block w-full mb-4 p-2 border rounded bg-gray-200 cursor-not-allowed"
@@ -127,6 +133,7 @@ const AddStock = ({ onAdd }) => {
       <label className="block mb-2">목표 수익률 (%):</label>
       <input
         type="number"
+        inputMode="numeric"
         value={profitGoal}
         onChange={(e) => setProfitGoal(e.target.value)}
         onWheel={preventScroll}
