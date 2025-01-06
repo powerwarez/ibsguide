@@ -286,7 +286,10 @@ const StockDetail = () => {
                         ).toFixed(0) + i;
                       results.push(
                         <p key={i}>
-                          {(cutModePerTradeAmount / totalbuy).toFixed(2)} X 1개
+                          {Math.floor(
+                            (cutModePerTradeAmount / totalbuy) * 100
+                          ) / 100}{" "}
+                          X 1개
                         </p>
                       );
                     }
