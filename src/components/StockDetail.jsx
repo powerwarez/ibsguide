@@ -23,6 +23,7 @@ const StockDetail = () => {
   const [earliestTransactionDate, setEarliestTransactionDate] = useState(null);
   const [stockTransactions, setStockTransactions] = useState([]);
   const [previousClosePrice, setPreviousClosePrice] = useState(null);
+  const [lastSellDate, setLastSellDate] = useState(null);
 
   useEffect(() => {
     if (stock) {
@@ -162,6 +163,15 @@ const StockDetail = () => {
           await loadStockData();
         }
       }
+
+      // 마지막 매도 날짜 계산
+      const lastSellTransaction = stockTransactions
+        .filter((txn) => txn.type === "매도")
+        .sort((a, b) => b.timestamp - a.timestamp)[0];
+
+      if (lastSellTransaction) {
+        setLastSellDate(new Date(lastSellTransaction.timestamp));
+      }
     }
   }, [id, transactionCount, starCounter]);
 
@@ -215,6 +225,7 @@ const StockDetail = () => {
           ticker={stock.name}
           startDate={earliestTransactionDate}
           transactions={stockTransactions}
+          endDate={stock.isSettled ? lastSellDate : null}
         />
       </div>
 
@@ -333,7 +344,10 @@ const StockDetail = () => {
                     );
                     results.push(
                       <p key={i}>
-                        ${(stock.perTradeAmount / totalbuy).toFixed(2)} X 1개
+                        {(stock.perTradeAmount / Math.floor(totalbuy)).toFixed(
+                          2
+                        )}{" "}
+                        X 1개
                       </p>
                     );
                   }
@@ -368,7 +382,10 @@ const StockDetail = () => {
                     ).toFixed(0);
                     results.push(
                       <p key={i}>
-                        ${(stock.perTradeAmount / totalbuy).toFixed(2)} X 1개
+                        {(stock.perTradeAmount / Math.floor(totalbuy)).toFixed(
+                          2
+                        )}{" "}
+                        X 1개
                       </p>
                     );
                   }
@@ -419,7 +436,7 @@ const StockDetail = () => {
                             averagePrice *
                             (1 + stock.profitGoal / 100)
                           ).toFixed(2)}{" "}
-                          X {Math.floor(totalQuantity - totalQuantity / 4)}개
+                          X {totalQuantity - Math.floor(totalQuantity / 4)}개
                         </p>
                         {/* cutModetransactionCounter가 -1일 때만 업데이트 */}
                         {stock.cutModetransactionCounter === -1 &&
@@ -448,13 +465,12 @@ const StockDetail = () => {
                 <p>
                   매도 LOC 별지점 {perstar}%: $
                   {(averagePrice * (1 + perstar / 100)).toFixed(2)} X{" "}
-                  {(totalQuantity / 4).toFixed(0)}개
+                  {Math.floor(totalQuantity / 4)}개
                 </p>
                 <p>
                   매도 After지정: $
                   {(averagePrice * (1 + stock.profitGoal / 100)).toFixed(2)} X{" "}
-                  {(totalQuantity - (totalQuantity / 4).toFixed(0)).toFixed(0)}
-                  개
+                  {totalQuantity - Math.floor(totalQuantity / 4)}개
                 </p>
               </>
             )}

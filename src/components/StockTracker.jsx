@@ -17,8 +17,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // StockChart 컴포넌트
 const StockChart = ({ data, ticker }) => {
-  console.log(`Chart data for ${ticker}:`, data); // 데이터 확인용 로그
-
   return (
     <div className="w-full h-[400px] bg-white p-4 rounded-lg shadow">
       <h2 className="text-xl font-semibold mb-4">{ticker}</h2>
@@ -157,7 +155,6 @@ const StockTracker = () => {
           );
         }
 
-        console.log("Final stock prices:", stockPrices); // 데이터 확인용 로그
         setStockData(stockPrices);
       } catch (err) {
         setError(err.message);
@@ -172,9 +169,9 @@ const StockTracker = () => {
   if (loading) {
     return (
       <div className="text-center p-4">
-        <div className="mb-2">Loading stock data...</div>
+        <div className="mb-2">전일 종가 데이터를 불러오고 있습니다...</div>
         <div className="text-sm text-gray-500">
-          Data updates daily after 9:00 AM KST
+          전일 종가는 아침 9시 이후에 업데이트 됩니다.
         </div>
       </div>
     );
