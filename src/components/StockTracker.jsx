@@ -11,8 +11,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_API_KEY;
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_API_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // StockChart 컴포넌트
