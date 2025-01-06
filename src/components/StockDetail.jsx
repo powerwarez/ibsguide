@@ -322,12 +322,15 @@ const StockDetail = () => {
                 {(() => {
                   const results = [];
                   for (let i = 1; i <= 4; i++) {
-                    const totalbuy =
-                      stock.perTradeAmount / averagePrice / 2 +
-                      stock.perTradeAmount /
-                        (averagePrice * (1 + perstar / 100) - 0.01) /
-                        2 +
-                      i;
+                    const totalbuy = Number(
+                      (
+                        stock.perTradeAmount / averagePrice / 2 +
+                        stock.perTradeAmount /
+                          (averagePrice * (1 + perstar / 100) - 0.01) /
+                          2 +
+                        i
+                      ).toFixed(0)
+                    );
                     results.push(
                       <p key={i}>
                         ${(stock.perTradeAmount / totalbuy).toFixed(2)} X 1개
@@ -358,13 +361,11 @@ const StockDetail = () => {
                 {(() => {
                   const results = [];
                   for (let i = 1; i <= 4; i++) {
-                    const totalbuy =
-                      Number(
-                        (
-                          stock.perTradeAmount /
-                          (averagePrice * (1 + perstar / 100) - 0.01)
-                        ).toFixed(0)
-                      ) + i;
+                    const totalbuy = Number(
+                      stock.perTradeAmount /
+                        (averagePrice * (1 + perstar / 100) - 0.01) +
+                        i
+                    ).toFixed(0);
                     results.push(
                       <p key={i}>
                         ${(stock.perTradeAmount / totalbuy).toFixed(2)} X 1개
