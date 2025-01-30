@@ -6,7 +6,7 @@ const TransactionTable = ({ transactions, isSettled, onDeleteClick }) => {
       <thead>
         <tr className="bg-gray-200">
           <th className="p-2 border">No</th>
-          <th className="p-2 border">거래 유형</th>
+          <th className="p-2 border">유형</th>
           <th className="p-2 border">날짜</th>
           <th className="p-2 border">체결가</th>
           <th className="p-2 border">수량</th>

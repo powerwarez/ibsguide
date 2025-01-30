@@ -21,6 +21,7 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
           <label className="block">체결가:</label>
           <input
             type="number"
+            inputMode="numeric"
             value={transactionInput.price}
             onChange={(e) => setTransactionInput({ ...transactionInput, price: e.target.value })}
             onWheel={preventScroll} // 마우스 휠 방지 추가
@@ -31,6 +32,7 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
           <label className="block">수량:</label>
           <input
             type="number"
+            inputMode="numeric"
             value={transactionInput.quantity}
             onChange={(e) => setTransactionInput({ ...transactionInput, quantity: e.target.value })}
             onWheel={preventScroll} // 마우스 휠 방지 추가
@@ -41,6 +43,7 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
           <label className="block">수수료:</label>
           <input
             type="number"
+            inputMode="numeric"
             value={transactionInput.fee}
             onChange={(e) => setTransactionInput({ ...transactionInput, fee: e.target.value })}
             onWheel={preventScroll} // 마우스 휠 방지 추가
