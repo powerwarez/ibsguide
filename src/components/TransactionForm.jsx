@@ -21,7 +21,6 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
           <label className="block">체결가:</label>
           <input
             type="number"
-            inputMode="numeric"
             value={transactionInput.price}
             onChange={(e) => setTransactionInput({ ...transactionInput, price: e.target.value })}
             onWheel={preventScroll} // 마우스 휠 방지 추가
