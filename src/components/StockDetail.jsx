@@ -282,6 +282,7 @@ const StockDetail = () => {
                           ).toFixed(0)}
                           개
                         </p>
+                        <p>또는 현재가의 110% 지점 매수</p>
                       </details>
                     </>
                   );
@@ -334,11 +335,11 @@ const StockDetail = () => {
                     {(previousClosePrice * 1.12).toFixed(2)} X{" "}
                     {(
                       stock.perTradeAmount /
-                      (previousClosePrice * 1.12) /
-                      2
+                      (previousClosePrice * 1.12)
                     ).toFixed(0)}
                     개
                   </p>
+                  <p>또는 현재가의 110% 지점 매수</p>
                 </details>
                 <br />
                 <h3 style={{ color: "red" }}>하락시 추가 LOC매수</h3>
