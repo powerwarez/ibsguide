@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid"; // UUID 라이브러리
 
 const AddStock = ({ onAdd }) => {
+  // compoundInterestRate를 소수(decimal)로 저장 (예: 0.5 = 50%)
+  const [compoundInterestRate, setCompoundInterestRate] = useState(0.5);
   const [name, setName] = useState("TQQQ"); // 종목명
   const [version, setVersion] = useState("2.2"); // 투자 버전 선택
   const [investment, setInvestment] = useState(0); // 투자 금액
@@ -25,7 +27,7 @@ const AddStock = ({ onAdd }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 새로운 종목 데이터 생성
+    // 새로운 종목 데이터 생성 (compoundInterestRate 필드 추가)
     const newStock = {
       id: uuidv4(), // 고유 ID 생성
       name,
@@ -39,6 +41,7 @@ const AddStock = ({ onAdd }) => {
       quarterCutMode,
       cutModetransactionCounter,
       originalInvestment,
+      compoundInterestRate, // 복리율 추가
     };
 
     try {
@@ -139,6 +142,23 @@ const AddStock = ({ onAdd }) => {
         onWheel={preventScroll}
         className="block w-full mb-4 p-2 border rounded"
       />
+
+      {version === "3.0" && (
+        <>
+          {/* 복리율 입력: 사용자가 백분율(%)로 입력하고 내부는 소수로 저장 */}
+          <label className="block mb-2">복리율 (%):</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={(compoundInterestRate * 100).toFixed(0)}
+            onChange={(e) =>
+              setCompoundInterestRate(parseFloat(e.target.value) / 100)
+            }
+            onWheel={preventScroll}
+            className="block w-full mb-4 p-2 border rounded"
+          />
+        </>
+      )}
 
       {/* 추가 버튼 */}
       <button

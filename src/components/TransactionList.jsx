@@ -1,29 +1,44 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { useNavigate } from 'react-router-dom';
-import { addTransaction, getTransactionsByStockId, deleteTransaction, updateStock, getStockById, saveOriginalInvestment, getOriginalInvestment } from '../db';
-import TransactionForm from './TransactionForm';
-import TransactionTable from './TransactionTable';
-import DeleteModal from './DeleteModal';
-import ConfirmSettlementModal from './ConfirmSettlementModal';
+import React, { useState, useEffect, useCallback } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { useNavigate } from "react-router-dom";
+import {
+  addTransaction,
+  getTransactionsByStockId,
+  deleteTransaction,
+  updateStock,
+  getStockById,
+  saveOriginalInvestment,
+  getOriginalInvestment,
+} from "../db";
+import TransactionForm from "./TransactionForm";
+import TransactionTable from "./TransactionTable";
+import DeleteModal from "./DeleteModal";
+import ConfirmSettlementModal from "./ConfirmSettlementModal";
 
-const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEarliestDateChange, perstar, averagePrice }) => {
+const TransactionList = ({
+  stockId,
+  onAddTransaction,
+  onDeleteTransaction,
+  onEarliestDateChange,
+  perstar,
+  averagePrice,
+}) => {
   const [transactions, setTransactions] = useState([]);
   const [isSettled, setIsSettled] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
   const [transactionInput, setTransactionInput] = useState({
     date: new Date().toISOString().slice(0, 10),
-    price: '',
-    quantity: '',
-    fee: '',
+    price: "",
+    quantity: "",
+    fee: "",
   });
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
   const [settlementDate, setSettlementDate] = useState(null);
-  // eslint-disable-next-line 
+  // eslint-disable-next-line
   const [originalInvestment, setOriginalInvestment] = useState(null);
-  // eslint-disable-next-line 
+  // eslint-disable-next-line
   const [originalPerTradeAmount, setOriginalPerTradeAmount] = useState(null);
   const navigate = useNavigate();
 
@@ -43,11 +58,19 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
       console.log("Loaded transactions:", storedTransactions);
 
       const stock = await getStockById(stockId);
-      setTransactions(storedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setTransactions(
+        storedTransactions.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+      );
       setIsSettled(stock?.isSettled || false);
 
       if (storedTransactions.length > 0) {
-        const earliestDate = new Date(Math.min(...storedTransactions.map(txn => new Date(txn.date).getTime())));
+        const earliestDate = new Date(
+          Math.min(
+            ...storedTransactions.map((txn) => new Date(txn.date).getTime())
+          )
+        );
         console.log("Earliest transaction date:", earliestDate);
         onEarliestDateChange(earliestDate.toISOString().slice(0, 10));
       }
@@ -67,7 +90,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
       await updateStock(stockId, { isSettled: true, name: updatedName });
       setShowSettlementModal(false);
       setIsSettled(true);
-      navigate('/', { state: { selectedTab: '정산됨' } });
+      navigate("/", { state: { selectedTab: "정산됨" } });
     } catch (error) {
       console.error("Error during settlement:", error);
     }
@@ -75,9 +98,12 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
 
   const handleTransactionSubmit = async (type) => {
     try {
-      const newQuantity = type === '매도' ? -Math.abs(transactionInput.quantity) : parseInt(transactionInput.quantity, 10);
+      const newQuantity =
+        type === "매도"
+          ? -Math.abs(transactionInput.quantity)
+          : parseInt(transactionInput.quantity, 10);
       const timestamp = new Date().getTime();
-  
+
       const newTransaction = {
         ...transactionInput,
         id: uuidv4(),
@@ -86,46 +112,60 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
         timestamp,
         stockId,
       };
-  
+
       console.log("New transaction:", newTransaction);
-  
+
       await addTransaction(stockId, newTransaction);
-  
+
       const updatedTransactions = [newTransaction, ...transactions];
       setTransactions(updatedTransactions);
-  
+
       const stock = await getStockById(stockId);
-      const totalQuantity = updatedTransactions.reduce((sum, txn) => sum + txn.quantity, 0);
+      const totalQuantity = updatedTransactions.reduce(
+        (sum, txn) => sum + txn.quantity,
+        0
+      );
       console.log("Total quantity after transaction:", totalQuantity);
-  
-      if (type === '매도' && stock.version === '3.0' && transactionInput.price > averagePrice) {
-        const additionalInvestment = ((transactionInput.price - averagePrice) * Math.abs(newQuantity)) / 2;
+
+      if (
+        type === "매도" &&
+        stock.version === "3.0" &&
+        transactionInput.price > averagePrice
+      ) {
+        const additionalInvestment =
+          (transactionInput.price - averagePrice) *
+          Math.abs(newQuantity) *
+          stock.compoundInterestRate;
         const updatedInvestment = stock.investment + additionalInvestment;
         const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
-  
-        await updateStock(stockId, { 
+
+        await updateStock(stockId, {
           investment: updatedInvestment,
-          perTradeAmount: updatedPerTradeAmount
+          perTradeAmount: updatedPerTradeAmount,
         });
 
-        const originalData = await getOriginalInvestment(stockId) || { data: [] };
+        const originalData = (await getOriginalInvestment(stockId)) || {
+          data: [],
+        };
         originalData.data.push({ id: newTransaction.id, additionalInvestment });
         await saveOriginalInvestment(stockId, originalData.data);
       }
-  
-      if (totalQuantity === 0 && type === '매도') {
+
+      if (totalQuantity === 0 && type === "매도") {
         const date = new Date(transactionInput.date);
-        const formattedDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
+        const formattedDate = `${date.getFullYear()}년 ${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}월 ${String(date.getDate()).padStart(2, "0")}일`;
         setSettlementDate(formattedDate);
         setShowSettlementModal(true);
       } else {
         resetTransactionInput();
       }
-  
+
       await loadTransactions();
       onAddTransaction?.();
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error("Error adding transaction:", error);
       await loadTransactions();
     }
   };
@@ -133,9 +173,9 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
   const resetTransactionInput = () => {
     setTransactionInput({
       date: new Date().toISOString().slice(0, 10),
-      price: '',
-      quantity: '',
-      fee: '',
+      price: "",
+      quantity: "",
+      fee: "",
     });
     setIsBuying(false);
     setIsSelling(false);
@@ -143,23 +183,32 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
 
   const handleDeleteConfirm = async (transactionId) => {
     try {
-      const transactionToRemove = transactions.find(txn => txn.id === transactionId);
+      const transactionToRemove = transactions.find(
+        (txn) => txn.id === transactionId
+      );
       await deleteTransaction(transactionId);
-      setTransactions((prevTransactions) => prevTransactions.filter((txn) => txn.id !== transactionId));
-      
+      setTransactions((prevTransactions) =>
+        prevTransactions.filter((txn) => txn.id !== transactionId)
+      );
+
       const stock = await getStockById(stockId);
-      
-      if (stock.version === '3.0' && transactionToRemove.type === '매도') {
+
+      if (stock.version === "3.0" && transactionToRemove.type === "매도") {
         const originalData = await getOriginalInvestment(stockId);
-        const sellTransaction = originalData?.data.find(txn => txn.id === transactionId);
+        const sellTransaction = originalData?.data.find(
+          (txn) => txn.id === transactionId
+        );
         if (sellTransaction) {
-          const updatedInvestment = stock.investment - (sellTransaction.additionalInvestment);
+          const updatedInvestment =
+            stock.investment - sellTransaction.additionalInvestment;
           const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
-          await updateStock(stockId, { 
+          await updateStock(stockId, {
             investment: updatedInvestment,
-            perTradeAmount: updatedPerTradeAmount
+            perTradeAmount: updatedPerTradeAmount,
           });
-          originalData.data = originalData.data.filter(txn => txn.id !== transactionId);
+          originalData.data = originalData.data.filter(
+            (txn) => txn.id !== transactionId
+          );
           await saveOriginalInvestment(stockId, originalData.data);
         }
       }
@@ -188,7 +237,7 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
         />
       )}
 
-      {(!isSettled && (isBuying || isSelling)) && (
+      {!isSettled && (isBuying || isSelling) && (
         <TransactionForm
           transactionInput={transactionInput}
           setTransactionInput={setTransactionInput}
@@ -201,16 +250,24 @@ const TransactionList = ({ stockId, onAddTransaction, onDeleteTransaction, onEar
 
       {!isSettled && !isBuying && !isSelling && (
         <>
-          <h2 className="text-2xl font-semibold" style={{ color: "black" }}>매수 매도 리스트</h2>
+          <h2 className="text-2xl font-semibold" style={{ color: "black" }}>
+            매수 매도 리스트
+          </h2>
           <div className="flex justify-between mt-6">
             <button
-              onClick={() => { setIsBuying(true); setIsSelling(false); }}
+              onClick={() => {
+                setIsBuying(true);
+                setIsSelling(false);
+              }}
               className="w-full bg-red-500 text-white py-2 rounded mr-2"
             >
               매수
             </button>
             <button
-              onClick={() => { setIsSelling(true); setIsBuying(false); }}
+              onClick={() => {
+                setIsSelling(true);
+                setIsBuying(false);
+              }}
               className="w-full bg-blue-500 text-white py-2 rounded"
             >
               매도
