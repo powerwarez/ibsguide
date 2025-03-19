@@ -41,6 +41,7 @@ const StockTracker = () => {
   const [stockData, setStockData] = useState({
     SOXL: [],
     TQQQ: [],
+    QQQ: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
