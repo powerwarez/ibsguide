@@ -85,6 +85,16 @@ const AddStock = ({ onAdd }) => {
           />
           SOXL
         </label>
+        {/* <label className="flex items-center">
+          <input
+            type="radio"
+            value="TECL"
+            checked={name === "TECL"}
+            onChange={(e) => setName(e.target.value)}
+            className="mr-2"
+          />
+          TECL
+        </label> */}
       </div>
 
       {/* 투자 버전 선택 */}

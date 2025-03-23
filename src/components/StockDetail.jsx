@@ -406,6 +406,8 @@ const StockDetail = () => {
         stockId={id}
         perstar={perstar}
         averagePrice={averagePrice}
+        calculatedValueT={calculatedValueT}
+        totalQuantity={totalQuantity}
         onAddTransaction={handleTransactionUpdate}
         onDeleteTransaction={handleTransactionUpdate}
         onEarliestDateChange={setEarliestTransactionDate}

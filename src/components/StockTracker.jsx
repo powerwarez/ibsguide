@@ -42,6 +42,7 @@ const StockTracker = () => {
     SOXL: [],
     TQQQ: [],
     QQQ: [],
+    TECL: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -108,16 +109,18 @@ const StockTracker = () => {
 
         if (shouldFetchNew) {
           // 새로운 데이터 fetch
-          const [soxlData, tqqqData, qqqData] = await Promise.all([
+          const [soxlData, tqqqData, qqqData, teclData] = await Promise.all([
             fetchYahooData("SOXL"),
             fetchYahooData("TQQQ"),
             fetchYahooData("QQQ"),
+            fetchYahooData("TECL"),
           ]);
 
           stockPrices = {
             SOXL: soxlData,
             TQQQ: tqqqData,
             QQQ: qqqData,
+            TECL: teclData,
           };
 
           // Supabase 업데이트
@@ -135,6 +138,10 @@ const StockTracker = () => {
               {
                 ticker: "QQQ",
                 prices: qqqData,
+              },
+              {
+                ticker: "TECL",
+                prices: teclData,
               },
             ]);
 
