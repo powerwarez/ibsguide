@@ -32,7 +32,7 @@ const StockItem = ({ stock, onDelete }) => {
         <h2 className="text-xl font-semibold">
           {stock.name} (v{stock.version})
         </h2>
-        <p>투자 금액: ${stock.investment}</p>
+        <p>투자 금액: ${stock.investment.toFixed(2)}</p>
         <p>분할 횟수: {stock.divisionCount}회</p> {/* 분할 횟수 표시 */}
         <p>목표 수익률: {stock.profitGoal}%</p>
         {stock.compoundInterestRate != null && (
@@ -66,9 +66,8 @@ const StockItem = ({ stock, onDelete }) => {
             ></div>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            보유 자산: $
-            {investedValue.toFixed(2) > 0 ? investedValue.toFixed(2) : 0} / 총
-            투자: ${stock.investment}
+            보유 자산 / 총투자: $
+            {investedValue.toFixed(2) > 0 ? investedValue.toFixed(2) : 0} / ${stock.investment.toFixed(2)}
           </p>
         </div>
       </div>
