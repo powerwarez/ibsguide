@@ -154,16 +154,18 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
         let stockPrices;
 
         if (shouldFetch) {
-          const [soxlData, tqqqData, qqqData] = await Promise.all([
+          const [soxlData, tqqqData, qqqData, teclData] = await Promise.all([
             fetchYahooData('SOXL'),
             fetchYahooData('TQQQ'),
-            fetchYahooData('QQQ')
+            fetchYahooData('QQQ'),
+            fetchYahooData('TECL')
           ]);
 
           stockPrices = {
             SOXL: soxlData,
             TQQQ: tqqqData,
-            QQQ: qqqData
+            QQQ: qqqData,
+            TECL: teclData
           };
 
           const { error: upsertError } = await supabase
@@ -182,6 +184,11 @@ const StockTrackerComponent = ({ ticker, startDate, transactions }) => {
               {
                 ticker: 'QQQ',
                 prices: qqqData,
+                updated_at: new Date().toISOString()
+              },
+              {
+                ticker: 'TECL',
+                prices: teclData,
                 updated_at: new Date().toISOString()
               }
             ]);

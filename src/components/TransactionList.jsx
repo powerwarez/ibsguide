@@ -30,11 +30,13 @@ const TransactionList = ({
   const [isSettled, setIsSettled] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
+  const [stock, setStock] = useState(null);
   const [transactionInput, setTransactionInput] = useState({
     date: new Date().toISOString().slice(0, 10),
     price: "",
     quantity: "",
     fee: "",
+    memo: "",
   });
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [showSettlementModal, setShowSettlementModal] = useState(false);
@@ -55,6 +57,7 @@ const TransactionList = ({
   useEffect(() => {
     const loadStockData = async () => {
       const stock = await getStockById(stockId);
+      setStock(stock);
       const originalInvestmentData = await getOriginalInvestment(stockId);
       setOriginalInvestment(originalInvestmentData?.data || stock.investment);
       setOriginalPerTradeAmount(stock.perTradeAmount);
@@ -106,7 +109,7 @@ const TransactionList = ({
     }
   };
 
-  const handleTransactionSubmit = async (type) => {
+  const handleTransactionSubmit = async (type, transactionData = transactionInput) => {
     try {
       // 이전 상태 저장
       const stock = await getStockById(stockId);
@@ -120,13 +123,13 @@ const TransactionList = ({
 
       const newQuantity =
         type === "매도"
-          ? -Math.abs(parseInt(transactionInput.quantity, 10))
-          : parseInt(transactionInput.quantity, 10);
+          ? -Math.abs(parseInt(transactionData.quantity, 10))
+          : parseInt(transactionData.quantity, 10);
       const timestamp = new Date().getTime();
-      const price = parseFloat(transactionInput.price);
+      const price = parseFloat(transactionData.price);
 
       const newTransaction = {
-        ...transactionInput,
+        ...transactionData,
         id: uuidv4(),
         quantity: newQuantity,
         type,
@@ -248,7 +251,7 @@ const TransactionList = ({
       setShowChangeModal(true);
 
       if (newTotalQuantity === 0 && type === "매도") {
-        const date = new Date(transactionInput.date);
+        const date = new Date(transactionData.date);
         const formattedDate = `${date.getFullYear()}년 ${String(
           date.getMonth() + 1
         ).padStart(2, "0")}월 ${String(date.getDate()).padStart(2, "0")}일`;
@@ -271,6 +274,7 @@ const TransactionList = ({
       price: "",
       quantity: "",
       fee: "",
+      memo: "",
     });
     setIsBuying(false);
     setIsSelling(false);
@@ -348,6 +352,7 @@ const TransactionList = ({
           handleCancel={resetTransactionInput}
           isBuying={isBuying}
           isSelling={isSelling}
+          stock={stock}
         />
       )}
 

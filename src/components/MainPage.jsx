@@ -87,7 +87,7 @@ const MainPage = () => {
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">
       <h1 className="text-3xl font-bold mb-6 text-center">
         무한매수 가이드{" "}
-        <span className="text-gray-500 text-sm ml-2">updated 25.03.23.</span>
+        <span className="text-gray-500 text-sm ml-2">updated 25.04.17.</span>
       </h1>
 
       {/* 정산됨 탭의 전체 수익금 카드 */}

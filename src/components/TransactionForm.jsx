@@ -1,8 +1,23 @@
 import React from 'react';
 
-const TransactionForm = ({ transactionInput, setTransactionInput, handleTransactionSubmit, handleCancel, isBuying, isSelling }) => {
+const TransactionForm = ({ transactionInput, setTransactionInput, handleTransactionSubmit, handleCancel, isBuying, isSelling, stock }) => {
   // onWheel 이벤트 핸들러로 스크롤을 방지하는 함수
   const preventScroll = (e) => e.target.blur();
+
+  // 트랜잭션 제출 시 quarterCutMode 상태에 따라 MOC 메모 자동 추가
+  const handleSubmit = () => {
+    // 매도 & quarterCutMode 상태일 때 자동으로 MOC 메모 추가
+    if (isSelling && stock?.quarterCutMode && !transactionInput.memo) {
+      const updatedInput = { 
+        ...transactionInput, 
+        memo: transactionInput.memo ? `${transactionInput.memo} MOC` : "MOC"
+      };
+      setTransactionInput(updatedInput);
+      handleTransactionSubmit(isBuying ? '매수' : '매도', updatedInput);
+    } else {
+      handleTransactionSubmit(isBuying ? '매수' : '매도', transactionInput);
+    }
+  };
 
   return (
     <div className="mb-6">
@@ -48,9 +63,19 @@ const TransactionForm = ({ transactionInput, setTransactionInput, handleTransact
             className="w-full p-2 border rounded"
           />
         </div>
+        <div>
+          <label className="block">메모:</label>
+          <input
+            type="text"
+            value={transactionInput.memo || ''}
+            onChange={(e) => setTransactionInput({ ...transactionInput, memo: e.target.value })}
+            className="w-full p-2 border rounded"
+            placeholder={isSelling && stock?.quarterCutMode ? "MOC 매도 (자동 추가됩니다)" : ""}
+          />
+        </div>
         <div className="flex space-x-4">
           <button
-            onClick={() => handleTransactionSubmit(isBuying ? '매수' : '매도')}
+            onClick={handleSubmit}
             className={`w-full text-white py-2 rounded ${isBuying ? 'bg-red-500' : 'bg-blue-500'}`}
           >
             {isBuying ? '매수 등록' : '매도 등록'}

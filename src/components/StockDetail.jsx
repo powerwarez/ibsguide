@@ -136,6 +136,19 @@ const StockDetail = () => {
         await loadStockData();
       }
 
+      // MOC 매도 이후 쿼터컷 모드 종료 조건
+      const hasMOCSellTransaction = postCutTransactions.some(
+        (txn) => txn.type === "매도" && txn.memo && txn.memo.includes("MOC")
+      );
+      
+      if (hasMOCSellTransaction && foundStock.quarterCutMode) {
+        await updateStock(id, {
+          quarterCutMode: false,
+          cutModetransactionCounter: -1,
+        });
+        await loadStockData();
+      }
+
       // 추가 조건: transactionCount - stock.cutModetransactionCounter === 1일 때 가장 최근 매도 가격 확인
       if (
         foundStock.quarterCutMode === true &&
@@ -249,11 +262,13 @@ const StockDetail = () => {
               <>
                 {/* 2.2 전후반전 매수 시작 */}
                 {(() => {
-                  const buyquantity = Math.floor(
+                  const halfbuyquantity = Math.floor(
                     stock.perTradeAmount /
                       (averagePrice * (1 + perstar / 100) - 0.01) /
                       2
                   );
+                  const aver_buyquantity = Math.floor(stock.perTradeAmount / averagePrice - halfbuyquantity);
+
                   return (
                     <>
                       <h3 style={{ color: "red", fontWeight: "bold" }}>
@@ -262,14 +277,16 @@ const StockDetail = () => {
                       <p>
                         매수 별{perstar}% LOC: $
                         {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)}{" "}
-                        X {buyquantity}개
+                        X {halfbuyquantity}개
                       </p>
                       <details>
                         <summary>
+                          {(() => {
+                            
+                            return null;
+                          })()}
                           매수 평단 LOC: ${averagePrice.toFixed(2)} X{" "}
-                          {Math.floor(
-                            stock.perTradeAmount / averagePrice - buyquantity
-                          )}
+                          {aver_buyquantity}
                           개
                         </summary>
                         <p>
@@ -291,15 +308,16 @@ const StockDetail = () => {
                 <h3 style={{ color: "red" }}>하락시 추가 LOC매수</h3>
                 {(() => {
                   const results = [];
+                  const halfbuyquantity = Math.floor(
+                    stock.perTradeAmount /
+                      (averagePrice * (1 + perstar / 100) - 0.01) /
+                      2
+                  );
+                  const aver_buyquantity = Math.floor(stock.perTradeAmount / averagePrice - halfbuyquantity);
+                  
                   for (let i = 1; i <= 4; i++) {
                     const totalbuy = Number(
-                      (
-                        stock.perTradeAmount / averagePrice / 2 +
-                        stock.perTradeAmount /
-                          (averagePrice * (1 + perstar / 100) - 0.01) /
-                          2 +
-                        i
-                      ).toFixed(0)
+                      (aver_buyquantity + halfbuyquantity + i)
                     );
                     results.push(
                       <p key={i}>
@@ -323,20 +341,20 @@ const StockDetail = () => {
                   <summary>
                     매수 별{perstar}% LOC: $
                     {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X{" "}
-                    {(
+                    {Math.floor(
                       stock.perTradeAmount /
                       (averagePrice * (1 + perstar / 100) - 0.01)
-                    ).toFixed(0)}
+                    )}
                     개
                   </summary>
                   <p>큰 하락시 큰수매수</p>
                   <p>
                     큰수매수(종가112%)LOC: $
                     {(previousClosePrice * 1.12).toFixed(2)} X{" "}
-                    {(
+                    {Math.floor(
                       stock.perTradeAmount /
                       (previousClosePrice * 1.12)
-                    ).toFixed(0)}
+                    )}
                     개
                   </p>
                   <p>또는 현재가의 110% 지점 매수</p>
@@ -347,11 +365,11 @@ const StockDetail = () => {
                   const results = [];
                   for (let i = 1; i <= 4; i++) {
                     const totalbuy = Number(
-                      (
+                      Math.floor(
                         stock.perTradeAmount /
                           (averagePrice * (1 + perstar / 100) - 0.01) +
                         i
-                      ).toFixed(0)
+                      )
                     );
                     results.push(
                       <p key={i}>
