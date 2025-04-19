@@ -85,7 +85,7 @@ const AddStock = ({ onAdd }) => {
           />
           SOXL
         </label>
-        {/* <label className="flex items-center">
+        <label className="flex items-center">
           <input
             type="radio"
             value="TECL"
@@ -94,7 +94,7 @@ const AddStock = ({ onAdd }) => {
             className="mr-2"
           />
           TECL
-        </label> */}
+        </label>
       </div>
 
       {/* 투자 버전 선택 */}
