@@ -140,7 +140,7 @@ const StockDetail = () => {
       const hasMOCSellTransaction = postCutTransactions.some(
         (txn) => txn.type === "매도" && txn.memo && txn.memo.includes("MOC")
       );
-      
+
       if (hasMOCSellTransaction && foundStock.quarterCutMode) {
         await updateStock(id, {
           quarterCutMode: false,
@@ -202,7 +202,22 @@ const StockDetail = () => {
         </button>
         <h1 className="text-3xl font-bold">종목 세부 정보</h1>
       </div>
-
+      <div className="p-4 mb-6 bg-gray-100 rounded-lg shadow-md text-center">
+        <h2 className="text-xl font-semibold">주의사항</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          <span className="font-bold text-red-500">
+            본 사이트는 무한 매수를 진행하는 분들의 개인적인 기록이나 계산을
+            도와주는 사이트입니다.
+            <br />
+            해당 방법을 추천하거나, 특정종목을 추천하지 않습니다.
+            <br />
+            매수매도를 추천하지 않으며, 수익을 보장하지 않습니다.
+            <br />
+            투자여부에 대한 모든 판단 및 결정은 투자자 스스로 하시기 바랍니다.
+            <br />본 사이트는 투자자의 투자 결과에 대한 책임을 지지 않습니다.
+          </span>
+        </p>
+      </div>
       <div className="mb-6">
         <h2 className="text-2xl font-semibold">
           {stock.name} (v{stock.version})
@@ -267,7 +282,9 @@ const StockDetail = () => {
                       (averagePrice * (1 + perstar / 100) - 0.01) /
                       2
                   );
-                  const aver_buyquantity = Math.floor(stock.perTradeAmount / averagePrice - halfbuyquantity);
+                  const aver_buyquantity = Math.floor(
+                    stock.perTradeAmount / averagePrice - halfbuyquantity
+                  );
 
                   return (
                     <>
@@ -282,12 +299,10 @@ const StockDetail = () => {
                       <details>
                         <summary>
                           {(() => {
-                            
                             return null;
                           })()}
                           매수 평단 LOC: ${averagePrice.toFixed(2)} X{" "}
-                          {aver_buyquantity}
-                          개
+                          {aver_buyquantity}개
                         </summary>
                         <p>
                           큰수매수(종가112%)LOC: $
@@ -313,11 +328,13 @@ const StockDetail = () => {
                       (averagePrice * (1 + perstar / 100) - 0.01) /
                       2
                   );
-                  const aver_buyquantity = Math.floor(stock.perTradeAmount / averagePrice - halfbuyquantity);
-                  
+                  const aver_buyquantity = Math.floor(
+                    stock.perTradeAmount / averagePrice - halfbuyquantity
+                  );
+
                   for (let i = 1; i <= 4; i++) {
                     const totalbuy = Number(
-                      (aver_buyquantity + halfbuyquantity + i)
+                      aver_buyquantity + halfbuyquantity + i
                     );
                     results.push(
                       <p key={i}>
@@ -343,7 +360,7 @@ const StockDetail = () => {
                     {(averagePrice * (1 + perstar / 100) - 0.01).toFixed(2)} X{" "}
                     {Math.floor(
                       stock.perTradeAmount /
-                      (averagePrice * (1 + perstar / 100) - 0.01)
+                        (averagePrice * (1 + perstar / 100) - 0.01)
                     )}
                     개
                   </summary>
@@ -352,8 +369,7 @@ const StockDetail = () => {
                     큰수매수(종가112%)LOC: $
                     {(previousClosePrice * 1.12).toFixed(2)} X{" "}
                     {Math.floor(
-                      stock.perTradeAmount /
-                      (previousClosePrice * 1.12)
+                      stock.perTradeAmount / (previousClosePrice * 1.12)
                     )}
                     개
                   </p>
@@ -368,7 +384,7 @@ const StockDetail = () => {
                       Math.floor(
                         stock.perTradeAmount /
                           (averagePrice * (1 + perstar / 100) - 0.01) +
-                        i
+                          i
                       )
                     );
                     results.push(
