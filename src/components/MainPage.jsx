@@ -87,7 +87,7 @@ const MainPage = () => {
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">
       <h1 className="text-3xl font-bold mb-6 text-center">
         무한매수 도우미{" "}
-        <span className="text-gray-500 text-sm ml-2">updated 25.04.17.</span>
+        <span className="text-gray-500 text-sm ml-2">updated 25.04.19.</span>
       </h1>
       <div className="p-4 mb-6 bg-gray-100 rounded-lg shadow-md text-center">
         <h2 className="text-xl font-semibold">주의사항</h2>
