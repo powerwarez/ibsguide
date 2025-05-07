@@ -1,6 +1,11 @@
 import React from "react";
 
-const TransactionChangeModal = ({ changes, onClose, transactionType }) => {
+const TransactionChangeModal = ({
+  changes,
+  onClose,
+  transactionType,
+  stock,
+}) => {
   // 변화량에 따른 색상 함수
   const getChangeColor = (change) => {
     return change > 0
@@ -56,7 +61,8 @@ const TransactionChangeModal = ({ changes, onClose, transactionType }) => {
           )}
           {changes.cashBalance && (
             <p>
-              예수금: ${changes.cashBalance.new.toFixed(2)}
+              예수금: $
+              {(stock?.investment + changes.cashBalance.new).toFixed(2)}
               <span
                 className={`ml-2 ${getChangeColor(changes.cashBalance.change)}`}
               >

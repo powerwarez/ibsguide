@@ -109,7 +109,10 @@ const TransactionList = ({
     }
   };
 
-  const handleTransactionSubmit = async (type, transactionData = transactionInput) => {
+  const handleTransactionSubmit = async (
+    type,
+    transactionData = transactionInput
+  ) => {
     try {
       // 이전 상태 저장
       const stock = await getStockById(stockId);
@@ -341,6 +344,7 @@ const TransactionList = ({
           changes={transactionChanges}
           transactionType={transactionType}
           onClose={() => setShowChangeModal(false)}
+          stock={stock}
         />
       )}
 
