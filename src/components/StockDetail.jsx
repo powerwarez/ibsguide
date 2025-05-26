@@ -173,9 +173,23 @@ const StockDetail = () => {
         .filter((txn) => txn.type === "매도")
         .sort((a, b) => b.timestamp - a.timestamp)[0];
 
-      if (lastSellTransaction) {
+      // 정산된 종목은 종료일을 설정
+      let settledEndDate = null;
+      if (foundStock.isSettled && lastSellTransaction) {
+        settledEndDate = new Date(lastSellTransaction.timestamp)
+          .toISOString()
+          .split("T")[0];
+        setLastSellDate(new Date(lastSellTransaction.timestamp));
+        console.log("마지막 매도 날짜:", settledEndDate);
+      } else if (lastSellTransaction) {
         setLastSellDate(new Date(lastSellTransaction.timestamp));
       }
+
+      console.log("정산 여부:", foundStock.isSettled);
+      console.log(
+        "endDate 전달값:",
+        foundStock.isSettled ? settledEndDate : "null"
+      );
     }
   }, [id, transactionCount]);
 
@@ -249,7 +263,13 @@ const StockDetail = () => {
             ticker={stock.name}
             startDate={earliestTransactionDate}
             transactions={stockTransactions}
-            endDate={stock.isSettled ? lastSellDate : null}
+            endDate={
+              stock.isSettled
+                ? lastSellDate
+                  ? lastSellDate.toISOString().split("T")[0]
+                  : null
+                : null
+            }
           />
         ) : (
           <div className="flex justify-center items-center space-x-2">
