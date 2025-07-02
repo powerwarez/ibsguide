@@ -87,29 +87,38 @@ const MainPage = () => {
     <div className="max-w-4xl mx-auto p-6 mb-12 bg-white shadow-md rounded-md">
       <h1 className="text-3xl font-bold mb-6 text-center">
         무한매수 도우미{" "}
-        <span className="text-gray-500 text-sm ml-2">updated 25.05.26.</span>
+        <span className="text-gray-500 text-sm ml-2">
+          updated 25.07.03.
+        </span>
       </h1>
       <div className="p-4 mb-6 bg-gray-100 rounded-lg shadow-md text-center">
         <h2 className="text-xl font-semibold">주의사항</h2>
         <p className="mt-2 text-sm text-gray-500">
           <span className="font-bold text-red-500">
-            본 사이트는 무한 매수를 진행하는 분들의 개인적인 기록이나 계산을
-            도와주는 사이트입니다.
+            본 사이트는 무한 매수를 진행하는 분들의 개인적인
+            기록이나 계산을 도와주는 사이트입니다.
             <br />
-            해당 방법을 추천하거나, 특정종목을 추천하지 않습니다.
+            해당 방법을 추천하거나, 특정종목을 추천하지
+            않습니다.
             <br />
-            매수매도를 추천하지 않으며, 수익을 보장하지 않습니다.
+            매수매도를 추천하지 않으며, 수익을 보장하지
+            않습니다.
             <br />
-            투자여부에 대한 모든 판단 및 결정은 투자자 스스로 하시기 바랍니다.
-            <br />본 사이트는 투자자의 투자 결과에 대한 책임을 지지 않습니다.
+            투자여부에 대한 모든 판단 및 결정은 투자자
+            스스로 하시기 바랍니다.
+            <br />본 사이트는 투자자의 투자 결과에 대한
+            책임을 지지 않습니다.
           </span>
         </p>
       </div>
       {/* 정산됨 탭의 전체 수익금 카드 */}
       {selectedTab === "정산됨" && (
         <div className="p-4 mb-6 bg-gray-100 rounded-lg shadow-md text-center">
-          <h2 className="text-xl font-semibold">전체 수익금</h2>
-          <p className={`text-2xl font-bold mt-2 ${profitColorClass}`}>
+          <h2 className="text-xl font-semibold">
+            전체 수익금
+          </h2>
+          <p
+            className={`text-2xl font-bold mt-2 ${profitColorClass}`}>
             ${totalProfit.toFixed(2)}
           </p>
         </div>
@@ -140,15 +149,13 @@ const MainPage = () => {
           {!isAdding ? (
             <button
               className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-              onClick={() => setIsAdding(true)}
-            >
+              onClick={() => setIsAdding(true)}>
               종목 추가
             </button>
           ) : (
             <button
               className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
-              onClick={() => setIsAdding(false)}
-            >
+              onClick={() => setIsAdding(false)}>
               취소
             </button>
           )}
@@ -167,8 +174,7 @@ const MainPage = () => {
               ? "text-blue-600 font-semibold"
               : "text-gray-600"
           }`}
-          onClick={() => setSelectedTab("운용중")}
-        >
+          onClick={() => setSelectedTab("운용중")}>
           운용중
         </button>
         <button
@@ -177,8 +183,7 @@ const MainPage = () => {
               ? "text-blue-600 font-semibold"
               : "text-gray-600"
           }`}
-          onClick={() => setSelectedTab("정산됨")}
-        >
+          onClick={() => setSelectedTab("정산됨")}>
           정산됨
         </button>
       </div>
