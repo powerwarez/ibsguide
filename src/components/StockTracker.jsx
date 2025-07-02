@@ -19,17 +19,28 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const StockChart = ({ data, ticker }) => {
   return (
     <div className="w-full h-[400px] bg-white p-4 rounded-lg shadow">
-      <h2 className="text-xl font-semibold mb-4">{ticker}</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        {ticker}
+      </h2>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
           data={data}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-        >
+          margin={{
+            top: 5,
+            right: 30,
+            left: 20,
+            bottom: 5,
+          }}>
           <XAxis dataKey="date" tick={{ fontSize: 12 }} />
           <YAxis />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="price" stroke="#8884d8" dot={false} />
+          <Line
+            type="monotone"
+            dataKey="price"
+            stroke="#8884d8"
+            dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -50,10 +61,15 @@ const StockTracker = () => {
   const isKoreaMarketOpen = () => {
     const now = new Date();
     const koreaTime = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+      now.toLocaleString("en-US", {
+        timeZone: "Asia/Seoul",
+      })
     );
-    const hours = koreaTime.getHours();
-    return hours >= 9;
+    return (
+      koreaTime.getHours() > 7 ||
+      (koreaTime.getHours() === 7 &&
+        koreaTime.getMinutes() >= 5)
+    );
   };
 
   const isSameDate = (date1, date2) => {
@@ -75,10 +91,13 @@ const StockTracker = () => {
     }
 
     const timestamps = data.chart.result[0].timestamp;
-    const closePrices = data.chart.result[0].indicators.quote[0].close;
+    const closePrices =
+      data.chart.result[0].indicators.quote[0].close;
 
     return timestamps.map((timestamp, index) => ({
-      date: new Date(timestamp * 1000).toISOString().split("T")[0],
+      date: new Date(timestamp * 1000)
+        .toISOString()
+        .split("T")[0],
       price: closePrices[index]?.toFixed(2) || null,
     }));
   };
@@ -87,34 +106,42 @@ const StockTracker = () => {
     const loadStockData = async () => {
       try {
         // Supabase에서 최신 데이터 확인
-        const { data: latestData, error: fetchError } = await supabase
-          .from("stock_prices")
-          .select("*")
-          .order("updated_at", { ascending: false })
-          .limit(1);
+        const { data: latestData, error: fetchError } =
+          await supabase
+            .from("stock_prices")
+            .select("*")
+            .order("updated_at", { ascending: false })
+            .limit(1);
 
         if (fetchError) throw fetchError;
 
         const now = new Date();
         const koreanTime = new Date(
-          now.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+          now.toLocaleString("en-US", {
+            timeZone: "Asia/Seoul",
+          })
         );
         const shouldFetchNew =
           !latestData.length ||
-          !isSameDate(new Date(latestData[0].updated_at), koreanTime) ||
+          !isSameDate(
+            new Date(latestData[0].updated_at),
+            koreanTime
+          ) ||
           (isKoreaMarketOpen() &&
-            latestData[0].updated_at < koreanTime.setHours(9, 0, 0, 0));
+            latestData[0].updated_at <
+              koreanTime.setHours(7, 5, 0, 0));
 
         let stockPrices;
 
         if (shouldFetchNew) {
           // 새로운 데이터 fetch
-          const [soxlData, tqqqData, qqqData, teclData] = await Promise.all([
-            fetchYahooData("SOXL"),
-            fetchYahooData("TQQQ"),
-            fetchYahooData("QQQ"),
-            fetchYahooData("TECL"),
-          ]);
+          const [soxlData, tqqqData, qqqData, teclData] =
+            await Promise.all([
+              fetchYahooData("SOXL"),
+              fetchYahooData("TQQQ"),
+              fetchYahooData("QQQ"),
+              fetchYahooData("TECL"),
+            ]);
 
           stockPrices = {
             SOXL: soxlData,
@@ -148,9 +175,8 @@ const StockTracker = () => {
           if (upsertError) throw upsertError;
         } else {
           // Supabase의 캐시된 데이터 사용
-          const { data: cachedData, error: cacheError } = await supabase
-            .from("stock_prices")
-            .select("*");
+          const { data: cachedData, error: cacheError } =
+            await supabase.from("stock_prices").select("*");
 
           if (cacheError) throw cacheError;
 
@@ -177,24 +203,36 @@ const StockTracker = () => {
   if (loading) {
     return (
       <div className="text-center p-4">
-        <div className="mb-2">전일 종가 데이터를 불러오고 있습니다...</div>
+        <div className="mb-2">
+          전일 종가 데이터를 불러오고 있습니다...
+        </div>
         <div className="text-sm text-gray-500">
-          전일 종가는 아침 9시 이후에 업데이트 됩니다.
+          전일 종가는 아침 7시 5분 이후에 업데이트 됩니다.
         </div>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center p-4">Error: {error}</div>;
+    return (
+      <div className="text-red-500 text-center p-4">
+        Error: {error}
+      </div>
+    );
   }
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Stock Price Tracker</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        Stock Price Tracker
+      </h1>
       <div className="space-y-6">
         {Object.entries(stockData).map(([ticker, data]) => (
-          <StockChart key={ticker} data={data} ticker={ticker} />
+          <StockChart
+            key={ticker}
+            data={data}
+            ticker={ticker}
+          />
         ))}
       </div>
     </div>
