@@ -81,6 +81,7 @@ const StockTracker = () => {
   };
 
   const fetchYahooData = async (ticker) => {
+    console.log(`Fetching data for ${ticker}...`);
     const response = await fetch(
       `/api/v8/finance/chart/${ticker}?interval=1d&range=1y`
     );
@@ -93,6 +94,95 @@ const StockTracker = () => {
     const timestamps = data.chart.result[0].timestamp;
     const closePrices =
       data.chart.result[0].indicators.quote[0].close;
+    const adjClosePrices =
+      data.chart.result[0].indicators.adjclose?.[0]
+        ?.adjclose;
+
+    // 디버깅: 마지막 몇 개 데이터 확인
+    if (ticker === "SOXL") {
+      const lastIndex = closePrices.length - 1;
+      console.log(`=== ${ticker} 최근 데이터 ===`);
+      console.log(`총 데이터 개수: ${closePrices.length}`);
+
+      // API 응답 전체 구조 확인
+      console.log(
+        `API 응답 indicators:`,
+        data.chart.result[0].indicators
+      );
+
+      for (
+        let i = Math.max(0, lastIndex - 4);
+        i <= lastIndex;
+        i++
+      ) {
+        if (closePrices[i] !== null) {
+          const date = new Date(timestamps[i] * 1000);
+          const localDate = date.toLocaleDateString(
+            "ko-KR",
+            { timeZone: "America/New_York" }
+          );
+
+          console.log(`\n인덱스 [${i}]:`);
+          console.log(
+            `  - UTC 날짜: ${date.toISOString()}`
+          );
+          console.log(
+            `  - ISO 날짜: ${
+              date.toISOString().split("T")[0]
+            }`
+          );
+          console.log(`  - 뉴욕 시간 날짜: ${localDate}`);
+          console.log(
+            `  - 원본 종가(close): ${closePrices[i]}`
+          );
+          console.log(
+            `  - 조정종가(adjclose): ${
+              adjClosePrices?.[i] || "N/A"
+            }`
+          );
+          console.log(
+            `  - toFixed(2) 결과: ${closePrices[i].toFixed(
+              2
+            )}`
+          );
+          console.log(
+            `  - Math.round(x*100)/100: ${
+              Math.round(closePrices[i] * 100) / 100
+            }`
+          );
+
+          // 2025년 8월 22일 데이터 특별 확인
+          if (
+            date.toISOString().split("T")[0] ===
+            "2025-08-22"
+          ) {
+            console.log(`\n⚠️ 2025-08-22 데이터 발견!`);
+            console.log(`  실제 종가: 27.45`);
+            console.log(`  API 반환값: ${closePrices[i]}`);
+            console.log(
+              `  저장될 값: ${closePrices[i].toFixed(2)}`
+            );
+          }
+        }
+      }
+
+      // Open, High, Low 가격도 확인
+      const openPrices =
+        data.chart.result[0].indicators.quote[0].open;
+      const highPrices =
+        data.chart.result[0].indicators.quote[0].high;
+      const lowPrices =
+        data.chart.result[0].indicators.quote[0].low;
+      const volumes =
+        data.chart.result[0].indicators.quote[0].volume;
+
+      console.log(`\n마지막 거래일 OHLCV 데이터:`);
+      console.log(`  - Open: ${openPrices[lastIndex]}`);
+      console.log(`  - High: ${highPrices[lastIndex]}`);
+      console.log(`  - Low: ${lowPrices[lastIndex]}`);
+      console.log(`  - Close: ${closePrices[lastIndex]}`);
+      console.log(`  - Volume: ${volumes[lastIndex]}`);
+    }
 
     return timestamps.map((timestamp, index) => ({
       date: new Date(timestamp * 1000)

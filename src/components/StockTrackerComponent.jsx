@@ -17,6 +17,9 @@ const StockTrackerComponent = ({
   const [error, setError] = useState(null);
 
   const fetchYahooData = async (ticker) => {
+    console.log(
+      `[StockTrackerComponent] Fetching data for ${ticker}...`
+    );
     const response = await fetch(
       `/api/v8/finance/chart/${ticker}?interval=1d&range=1y`
     );
@@ -32,6 +35,51 @@ const StockTrackerComponent = ({
     const timestamps = data.chart.result[0].timestamp;
     const closePrices =
       data.chart.result[0].indicators.quote[0].close;
+    const adjClosePrices =
+      data.chart.result[0].indicators.adjclose?.[0]
+        ?.adjclose;
+
+    // 디버깅: 마지막 몇 개 데이터 확인
+    if (ticker === "SOXL") {
+      const lastIndex = closePrices.length - 1;
+      console.log(
+        `[StockTrackerComponent] === ${ticker} 최근 데이터 ===`
+      );
+      for (
+        let i = Math.max(0, lastIndex - 2);
+        i <= lastIndex;
+        i++
+      ) {
+        if (closePrices[i] !== null) {
+          const date = new Date(timestamps[i] * 1000);
+          console.log(
+            `날짜: ${
+              date.toISOString().split("T")[0]
+            } (UTC)`
+          );
+          console.log(`  - 종가(close): ${closePrices[i]}`);
+          console.log(
+            `  - 조정종가(adjclose): ${
+              adjClosePrices?.[i] || "N/A"
+            }`
+          );
+          console.log(
+            `  - toFixed(2) 결과: ${closePrices[i].toFixed(
+              2
+            )}`
+          );
+
+          // 미국 동부 시간대로도 확인
+          const estDate = new Date(timestamps[i] * 1000);
+          estDate.setHours(estDate.getHours() - 5); // EST 시간대 (UTC-5)
+          console.log(
+            `  - EST 날짜: ${
+              estDate.toISOString().split("T")[0]
+            }`
+          );
+        }
+      }
+    }
 
     return timestamps.map((timestamp, index) => {
       const date = new Date(timestamp * 1000);
