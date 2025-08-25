@@ -181,20 +181,9 @@ const StockDetail = () => {
 
         const lastPrice = prices[prices.length - 1]?.price;
         console.log(`설정될 전일 종가: ${lastPrice}`);
-        console.log(`실제 8/22 종가: 27.45`);
 
-        // 8월 22일 데이터 찾기
-        const aug22Data = prices.find(
-          (p) => p.date === "2025-08-22"
-        );
-        if (aug22Data) {
-          console.log(
-            `8월 22일 데이터 발견: ${aug22Data.price}`
-          );
-          setPreviousClosePrice(aug22Data.price);
-        } else {
-          setPreviousClosePrice(lastPrice);
-        }
+        // 항상 마지막 가격 데이터를 전일 종가로 사용
+        setPreviousClosePrice(lastPrice);
       }
 
       // quarterCutMode가 시작되는 조건을 확인
