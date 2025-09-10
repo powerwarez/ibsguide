@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,6 +19,11 @@ import TransactionTable from "./TransactionTable";
 import DeleteModal from "./DeleteModal";
 import ConfirmSettlementModal from "./ConfirmSettlementModal";
 import TransactionChangeModal from "./TransactionChangeModal";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_API_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const TransactionList = ({
   stockId,
@@ -37,20 +46,34 @@ const TransactionList = ({
     quantity: "",
     fee: "",
     memo: "",
+    manualFeeEdit: false,
   });
-  const [transactionToDelete, setTransactionToDelete] = useState(null);
-  const [showSettlementModal, setShowSettlementModal] = useState(false);
-  const [settlementDate, setSettlementDate] = useState(null);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState(null);
+  const [showSettlementModal, setShowSettlementModal] =
+    useState(false);
+  const [settlementDate, setSettlementDate] =
+    useState(null);
   // eslint-disable-next-line
-  const [originalInvestment, setOriginalInvestment] = useState(null);
+  const [originalInvestment, setOriginalInvestment] =
+    useState(null);
   // eslint-disable-next-line
-  const [originalPerTradeAmount, setOriginalPerTradeAmount] = useState(null);
+  const [
+    // eslint-disable-next-line
+    originalPerTradeAmount,
+    setOriginalPerTradeAmount,
+  ] = useState(null);
   // 트랜잭션 변화를 저장하는 상태
-  const [transactionChanges, setTransactionChanges] = useState(null);
-  const [showChangeModal, setShowChangeModal] = useState(false);
-  const [transactionType, setTransactionType] = useState("");
+  const [transactionChanges, setTransactionChanges] =
+    useState(null);
+  const [showChangeModal, setShowChangeModal] =
+    useState(false);
+  const [transactionType, setTransactionType] =
+    useState("");
   // eslint-disable-next-line
-  const [previousValues, setPreviousValues] = useState(null);
+  const [previousValues, setPreviousValues] =
+    useState(null);
+  const [priceData, setPriceData] = useState([]);
 
   const navigate = useNavigate();
 
@@ -58,22 +81,51 @@ const TransactionList = ({
     const loadStockData = async () => {
       const stock = await getStockById(stockId);
       setStock(stock);
-      const originalInvestmentData = await getOriginalInvestment(stockId);
-      setOriginalInvestment(originalInvestmentData?.data || stock.investment);
+      const originalInvestmentData =
+        await getOriginalInvestment(stockId);
+      setOriginalInvestment(
+        originalInvestmentData?.data || stock.investment
+      );
       setOriginalPerTradeAmount(stock.perTradeAmount);
+
+      // Supabase에서 가격 데이터 가져오기
+      if (stock?.name) {
+        const baseTicker = stock.name.split("(")[0]; // 정산 정보 제거
+        const { data: stockPriceData, error } =
+          await supabase
+            .from("stock_prices")
+            .select("prices")
+            .eq("ticker", baseTicker)
+            .order("updated_at", { ascending: false })
+            .limit(1);
+
+        if (
+          !error &&
+          stockPriceData &&
+          stockPriceData.length > 0
+        ) {
+          setPriceData(stockPriceData[0].prices || []);
+        }
+      }
     };
     loadStockData();
   }, [stockId, calculatedValueT]);
 
   const loadTransactions = useCallback(async () => {
     try {
-      const storedTransactions = await getTransactionsByStockId(stockId);
-      console.log("Loaded transactions:", storedTransactions);
+      const storedTransactions =
+        await getTransactionsByStockId(stockId);
+      console.log(
+        "Loaded transactions:",
+        storedTransactions
+      );
 
       const stock = await getStockById(stockId);
       setTransactions(
         storedTransactions.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          (a, b) =>
+            new Date(b.date).getTime() -
+            new Date(a.date).getTime()
         )
       );
       setIsSettled(stock?.isSettled || false);
@@ -81,11 +133,18 @@ const TransactionList = ({
       if (storedTransactions.length > 0) {
         const earliestDate = new Date(
           Math.min(
-            ...storedTransactions.map((txn) => new Date(txn.date).getTime())
+            ...storedTransactions.map((txn) =>
+              new Date(txn.date).getTime()
+            )
           )
         );
-        console.log("Earliest transaction date:", earliestDate);
-        onEarliestDateChange(earliestDate.toISOString().slice(0, 10));
+        console.log(
+          "Earliest transaction date:",
+          earliestDate
+        );
+        onEarliestDateChange(
+          earliestDate.toISOString().slice(0, 10)
+        );
       }
     } catch (error) {
       console.error("Error loading transactions:", error);
@@ -100,7 +159,10 @@ const TransactionList = ({
     try {
       const stock = await getStockById(stockId);
       const updatedName = `${stock.name}(${settlementDate} 정산)`;
-      await updateStock(stockId, { isSettled: true, name: updatedName });
+      await updateStock(stockId, {
+        isSettled: true,
+        name: updatedName,
+      });
       setShowSettlementModal(false);
       setIsSettled(true);
       navigate("/", { state: { selectedTab: "정산됨" } });
@@ -126,7 +188,9 @@ const TransactionList = ({
 
       const newQuantity =
         type === "매도"
-          ? -Math.abs(parseInt(transactionData.quantity, 10))
+          ? -Math.abs(
+              parseInt(transactionData.quantity, 10)
+            )
           : parseInt(transactionData.quantity, 10);
       const timestamp = new Date().getTime();
       const price = parseFloat(transactionData.price);
@@ -145,45 +209,64 @@ const TransactionList = ({
 
       await addTransaction(stockId, newTransaction);
 
-      const updatedTransactions = [newTransaction, ...transactions];
+      const updatedTransactions = [
+        newTransaction,
+        ...transactions,
+      ];
       setTransactions(updatedTransactions);
 
       // 캐시 밸런스 계산 (예수금)
       const transactionCost = price * Math.abs(newQuantity);
       const cashBalanceChange =
-        type === "매도" ? transactionCost : -transactionCost;
-      const newCashBalance = (stock.cashBalance || 0) + cashBalanceChange;
+        type === "매도"
+          ? transactionCost
+          : -transactionCost;
+      const newCashBalance =
+        (stock.cashBalance || 0) + cashBalanceChange;
 
       // 수량, 평균가, T값 계산
       let newAveragePrice = prevState.averagePrice;
       let newTotalQuantity = prevState.quantity;
       let profitChange = 0;
+      const transactionFee =
+        parseFloat(transactionData.fee) || 0;
 
       if (type === "매수") {
-        // 매수인 경우 평균가 다시 계산
-        const totalValue = prevState.averagePrice * prevState.quantity;
+        // 매수인 경우 평균가 다시 계산 (수수료 포함)
+        const totalValue =
+          prevState.averagePrice * prevState.quantity;
         const newPurchaseValue = price * newQuantity;
-        const totalQuantityAfterPurchase = prevState.quantity + newQuantity;
+        const totalQuantityAfterPurchase =
+          prevState.quantity + newQuantity;
 
         if (totalQuantityAfterPurchase > 0) {
+          // 평균가에 수수료를 포함하여 실제 매수 단가 계산
           newAveragePrice =
-            (totalValue + newPurchaseValue) / totalQuantityAfterPurchase;
+            (totalValue +
+              newPurchaseValue +
+              transactionFee) /
+            totalQuantityAfterPurchase;
         }
         newTotalQuantity = totalQuantityAfterPurchase;
       } else {
         // 매도인 경우
         if (prevState.quantity > 0 && price > 0) {
-          // 매도 수익 계산
+          // 매도 수익 계산 (매도 수수료 차감)
           profitChange =
-            (price - prevState.averagePrice) * Math.abs(newQuantity);
+            (price - prevState.averagePrice) *
+              Math.abs(newQuantity) -
+            transactionFee;
           // 수량만 감소 (평균가 유지)
-          newTotalQuantity = prevState.quantity + newQuantity;
+          newTotalQuantity =
+            prevState.quantity + newQuantity;
         }
       }
 
       // T값 계산
-      const newInvestedValue = newAveragePrice * newTotalQuantity;
-      const newTValue = newInvestedValue / stock.perTradeAmount;
+      const newInvestedValue =
+        newAveragePrice * newTotalQuantity;
+      const newTValue =
+        newInvestedValue / stock.perTradeAmount;
 
       // DB 업데이트
       await updateStock(stockId, {
@@ -203,19 +286,29 @@ const TransactionList = ({
           (price - prevState.averagePrice) *
           Math.abs(newQuantity) *
           stock.compoundInterestRate;
-        const updatedInvestment = stock.investment + additionalInvestment;
-        const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
+        const updatedInvestment =
+          stock.investment + additionalInvestment;
+        const updatedPerTradeAmount =
+          updatedInvestment / stock.divisionCount;
 
         await updateStock(stockId, {
           investment: updatedInvestment,
           perTradeAmount: updatedPerTradeAmount,
         });
 
-        const originalData = (await getOriginalInvestment(stockId)) || {
+        const originalData = (await getOriginalInvestment(
+          stockId
+        )) || {
           data: [],
         };
-        originalData.data.push({ id: newTransaction.id, additionalInvestment });
-        await saveOriginalInvestment(stockId, originalData.data);
+        originalData.data.push({
+          id: newTransaction.id,
+          additionalInvestment,
+        });
+        await saveOriginalInvestment(
+          stockId,
+          originalData.data
+        );
       }
 
       // 트랜잭션 완료 후 업데이트된 상태 가져오기
@@ -226,7 +319,9 @@ const TransactionList = ({
         averagePrice: {
           new: newAveragePrice,
           change:
-            type === "매수" ? newAveragePrice - prevState.averagePrice : 0,
+            type === "매수"
+              ? newAveragePrice - prevState.averagePrice
+              : 0,
         },
         quantity: {
           new: newTotalQuantity,
@@ -257,7 +352,9 @@ const TransactionList = ({
         const date = new Date(transactionData.date);
         const formattedDate = `${date.getFullYear()}년 ${String(
           date.getMonth() + 1
-        ).padStart(2, "0")}월 ${String(date.getDate()).padStart(2, "0")}일`;
+        ).padStart(2, "0")}월 ${String(
+          date.getDate()
+        ).padStart(2, "0")}일`;
         setSettlementDate(formattedDate);
         setShowSettlementModal(true);
       } else {
@@ -278,6 +375,7 @@ const TransactionList = ({
       quantity: "",
       fee: "",
       memo: "",
+      manualFeeEdit: false,
     });
     setIsBuying(false);
     setIsSelling(false);
@@ -290,20 +388,29 @@ const TransactionList = ({
       );
       await deleteTransaction(transactionId);
       setTransactions((prevTransactions) =>
-        prevTransactions.filter((txn) => txn.id !== transactionId)
+        prevTransactions.filter(
+          (txn) => txn.id !== transactionId
+        )
       );
 
       const stock = await getStockById(stockId);
 
-      if (stock.version === "3.0" && transactionToRemove.type === "매도") {
-        const originalData = await getOriginalInvestment(stockId);
+      if (
+        stock.version === "3.0" &&
+        transactionToRemove.type === "매도"
+      ) {
+        const originalData = await getOriginalInvestment(
+          stockId
+        );
         const sellTransaction = originalData?.data.find(
           (txn) => txn.id === transactionId
         );
         if (sellTransaction) {
           const updatedInvestment =
-            stock.investment - sellTransaction.additionalInvestment;
-          const updatedPerTradeAmount = updatedInvestment / stock.divisionCount;
+            stock.investment -
+            sellTransaction.additionalInvestment;
+          const updatedPerTradeAmount =
+            updatedInvestment / stock.divisionCount;
           await updateStock(stockId, {
             investment: updatedInvestment,
             perTradeAmount: updatedPerTradeAmount,
@@ -311,7 +418,10 @@ const TransactionList = ({
           originalData.data = originalData.data.filter(
             (txn) => txn.id !== transactionId
           );
-          await saveOriginalInvestment(stockId, originalData.data);
+          await saveOriginalInvestment(
+            stockId,
+            originalData.data
+          );
         }
       }
 
@@ -357,12 +467,15 @@ const TransactionList = ({
           isBuying={isBuying}
           isSelling={isSelling}
           stock={stock}
+          priceData={priceData}
         />
       )}
 
       {!isSettled && !isBuying && !isSelling && (
         <>
-          <h2 className="text-2xl font-semibold" style={{ color: "black" }}>
+          <h2
+            className="text-2xl font-semibold"
+            style={{ color: "black" }}>
             매수 매도 리스트
           </h2>
           <div className="flex justify-between mt-6">
@@ -371,8 +484,7 @@ const TransactionList = ({
                 setIsBuying(true);
                 setIsSelling(false);
               }}
-              className="w-full bg-red-500 text-white py-2 rounded mr-2"
-            >
+              className="w-full bg-red-500 text-white py-2 rounded mr-2">
               매수
             </button>
             <button
@@ -380,8 +492,7 @@ const TransactionList = ({
                 setIsSelling(true);
                 setIsBuying(false);
               }}
-              className="w-full bg-blue-500 text-white py-2 rounded"
-            >
+              className="w-full bg-blue-500 text-white py-2 rounded">
               매도
             </button>
           </div>
@@ -391,7 +502,9 @@ const TransactionList = ({
       <TransactionTable
         transactions={transactions}
         isSettled={isSettled}
-        onDeleteClick={(transaction) => setTransactionToDelete(transaction)}
+        onDeleteClick={(transaction) =>
+          setTransactionToDelete(transaction)
+        }
       />
     </div>
   );

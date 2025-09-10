@@ -82,35 +82,31 @@ const StockDetail = () => {
       let totalQuantity = 0;
       let averagePrice = 0;
       let totalProfit = 0;
-      let purchaseFeeAccumulator = 0;
 
       stockTransactions.forEach((txn) => {
         if (txn.type === "매수") {
           const newPurchaseAmount =
             txn.price * txn.quantity;
+          const purchaseFee = Number(txn.fee) || 0;
           const newTotalQuantity =
             totalQuantity + txn.quantity;
+          // 평균가에 수수료를 포함하여 실제 매수 단가 계산
           averagePrice =
             (averagePrice * totalQuantity +
-              newPurchaseAmount) /
+              newPurchaseAmount +
+              purchaseFee) /
             newTotalQuantity;
           totalQuantity = newTotalQuantity;
-          // 매수 거래의 fee 누적 (첫 매도 이전이면 모든 매수 fee가 누적됨)
-          purchaseFeeAccumulator += Number(txn.fee) || 0;
         } else if (txn.type === "매도") {
           // 현재 매도 거래의 fee
           const saleFee = Number(txn.fee) || 0;
-          // 해당 매도의 fee 차감: 이전 매도 이후에 누적된 매수 fee와 현재 매도 fee를 합산하여 차감
-          const feeDeduction =
-            purchaseFeeAccumulator + saleFee;
+          // 매도 시 수익 계산 (매도 수수료 차감)
           const profitAmount =
             (txn.price - averagePrice) *
               Math.abs(txn.quantity) -
-            feeDeduction;
+            saleFee;
           totalProfit += profitAmount;
           totalQuantity += txn.quantity;
-          // 매도가 일어나면 매도 이후 새로운 매수에 대해 fee를 누적
-          purchaseFeeAccumulator = 0;
         }
       });
 

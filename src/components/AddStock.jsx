@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from "uuid"; // UUID 라이브러리
 
 const AddStock = ({ onAdd }) => {
   // compoundInterestRate를 소수(decimal)로 저장 (예: 0.5 = 50%)
-  const [compoundInterestRate, setCompoundInterestRate] = useState(0.5);
+  const [compoundInterestRate, setCompoundInterestRate] =
+    useState(0.5);
   const [name, setName] = useState("TQQQ"); // 종목명
   const [version, setVersion] = useState("2.2"); // 투자 버전 선택
   const [investment, setInvestment] = useState(0); // 투자 금액
@@ -15,6 +16,7 @@ const AddStock = ({ onAdd }) => {
   const [quarterCutMode] = useState(false);
   const [cutModetransactionCounter] = useState(-1);
   const [originalInvestment] = useState(0);
+  const [feeRate, setFeeRate] = useState(0.03); // 기본 수수료 비율 (0.03% = 0.0003)
 
   // 투자 금액과 분할 횟수에 따라 1회 매수금을 계산
   useEffect(() => {
@@ -42,6 +44,7 @@ const AddStock = ({ onAdd }) => {
       cutModetransactionCounter,
       originalInvestment,
       compoundInterestRate, // 복리율 추가
+      feeRate, // 수수료 비율 추가
     };
 
     try {
@@ -58,9 +61,10 @@ const AddStock = ({ onAdd }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-6 mt-6 rounded-lg shadow-md"
-    >
-      <h3 className="text-lg font-medium mb-4">운용 종목 추가</h3>
+      className="bg-white p-6 mt-6 rounded-lg shadow-md">
+      <h3 className="text-lg font-medium mb-4">
+        운용 종목 추가
+      </h3>
 
       {/* 종목명 선택 - 라디오 버튼으로 변경 */}
       <label className="block mb-2">종목명:</label>
@@ -102,8 +106,7 @@ const AddStock = ({ onAdd }) => {
       <select
         value={version}
         onChange={(e) => setVersion(e.target.value)}
-        className="block w-full mb-4 p-2 border rounded"
-      >
+        className="block w-full mb-4 p-2 border rounded">
         <option value="2.2">2.2</option>
         <option value="3.0">3.0</option>
       </select>
@@ -153,6 +156,21 @@ const AddStock = ({ onAdd }) => {
         className="block w-full mb-4 p-2 border rounded"
       />
 
+      {/* 수수료 비율 입력 */}
+      <label className="block mb-2">거래 수수료 (%):</label>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={feeRate}
+        onChange={(e) =>
+          setFeeRate(parseFloat(e.target.value) || 0)
+        }
+        onWheel={preventScroll}
+        className="block w-full mb-4 p-2 border rounded"
+        step="0.01"
+        placeholder="예: 0.03"
+      />
+
       {version === "3.0" && (
         <>
           {/* 복리율 입력: 사용자가 백분율(%)로 입력하고 내부는 소수로 저장 */}
@@ -162,7 +180,9 @@ const AddStock = ({ onAdd }) => {
             inputMode="numeric"
             value={(compoundInterestRate * 100).toFixed(0)}
             onChange={(e) =>
-              setCompoundInterestRate(parseFloat(e.target.value) / 100)
+              setCompoundInterestRate(
+                parseFloat(e.target.value) / 100
+              )
             }
             onWheel={preventScroll}
             className="block w-full mb-4 p-2 border rounded"
@@ -173,8 +193,7 @@ const AddStock = ({ onAdd }) => {
       {/* 추가 버튼 */}
       <button
         type="submit"
-        className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
-      >
+        className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
         추가
       </button>
     </form>
