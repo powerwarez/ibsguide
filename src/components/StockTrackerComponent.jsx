@@ -11,6 +11,7 @@ const StockTrackerComponent = ({
   startDate,
   transactions,
   endDate,
+  useUSTime = false,
 }) => {
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,6 +216,18 @@ const StockTrackerComponent = ({
           endDate
         );
 
+        // 트랜잭션이 없거나 시작일이 없는 경우 처리
+        if (
+          !transactions ||
+          transactions.length === 0 ||
+          !startDate
+        ) {
+          setStockData([]);
+          setError(null); // 에러가 아닌 빈 상태로 처리
+          setLoading(false);
+          return;
+        }
+
         // 티커에서 정산 날짜 추출
         let settledDateFromTicker = null;
         if (ticker.includes("정산")) {
@@ -233,10 +246,23 @@ const StockTrackerComponent = ({
         startDateObj.setHours(0, 0, 0, 0);
 
         // 시작일이 미래인 경우, 현재 또는 과거 데이터만 표시하기 위해 데이터를 조정
+        // 가장 오래된 거래의 전날 종가도 포함하기 위해 startDate에서 하루 더 빼기
+        const adjustedStartDate = new Date(startDate);
+        adjustedStartDate.setDate(
+          adjustedStartDate.getDate() - 1
+        );
+        const adjustedStartDateStr = adjustedStartDate
+          .toISOString()
+          .split("T")[0];
+
+        console.log(
+          `원래 시작일: ${startDate}, 조정된 시작일: ${adjustedStartDateStr} (전날 종가 포함)`
+        );
+
         const effectiveStartDate =
           startDateObj > today
             ? today.toISOString().split("T")[0]
-            : startDate;
+            : adjustedStartDateStr;
 
         // 종료일: 1) 티커에서 추출한 정산일, 2) props로 전달받은 endDate, 3) null 순으로 사용
         const rawEndDate = settledDateFromTicker || endDate;
@@ -327,8 +353,25 @@ const StockTrackerComponent = ({
         console.log("실제 조회할 티커:", baseTicker);
 
         // 정산된 종목인지 확인
+        //eslint-disable-next-line
         const isSettled =
           ticker.includes("정산") || rawEndDate !== null;
+
+        // 가장 최근 거래 날짜 찾기
+        const latestTransactionDate =
+          transactions.length > 0
+            ? transactions.reduce((latest, txn) => {
+                const txnDate = new Date(txn.date);
+                return txnDate > latest ? txnDate : latest;
+              }, new Date(transactions[0].date))
+            : today;
+
+        const latestTransactionDateStr =
+          latestTransactionDate.toISOString().split("T")[0];
+        console.log(
+          "가장 최근 거래 날짜:",
+          latestTransactionDateStr
+        );
 
         // 시작일 이후의 데이터 필터링 - 조정된 시작일 사용
         let filteredData =
@@ -351,7 +394,13 @@ const StockTrackerComponent = ({
             dataDate.setHours(0, 0, 0, 0);
             return dataDate <= endDateObj;
           });
-        } else if (isSettled) {
+        } else {
+          // 정산되지 않은 경우, 가장 최근 거래 날짜까지 포함
+          filteredData = filteredData.filter((data) => {
+            const dataDate = new Date(data.date);
+            dataDate.setHours(0, 0, 0, 0);
+            return dataDate <= latestTransactionDate;
+          });
         }
 
         // 미래 데이터 필터링 (현재 날짜보다 이후의 데이터는 제외)
@@ -359,48 +408,181 @@ const StockTrackerComponent = ({
           (data) => new Date(data.date) <= today
         );
 
+        // 차트 종료일을 가장 최근 거래일 또는 필터된 데이터의 마지막 날짜 중 더 늦은 날짜로 설정
         const chartEndDate =
           effectiveEndDate ||
           (filteredData.length > 0
-            ? filteredData[filteredData.length - 1].date
-            : today.toISOString().split("T")[0]);
+            ? new Date(
+                filteredData[filteredData.length - 1].date
+              ) >= latestTransactionDate
+              ? filteredData[filteredData.length - 1].date
+              : latestTransactionDateStr
+            : latestTransactionDateStr);
 
         console.log(`차트 종료일: ${chartEndDate}`);
 
-        // 데이터가 없는 경우 빈 차트 데이터 생성 (에러 방지)
-        if (filteredData.length === 0) {
-          setStockData([
-            {
-              date: effectiveStartDate,
-              price: null,
-              averagePrice: null,
-              sellPrice: null,
+        // 트랜잭션이 하나만 있어도 차트를 표시
+        // 모든 거래 날짜를 포함하는 날짜 범위 생성
+        const allDates = new Set();
+
+        // 거래 날짜들만 추가 (실제 거래가 있는 날짜만 그래프에 표시)
+        transactions.forEach((txn) => {
+          const txnDate = new Date(txn.date)
+            .toISOString()
+            .split("T")[0];
+          // 모든 거래 날짜를 포함 (오늘 거래도 포함)
+          allDates.add(txnDate);
+        });
+
+        // 거래가 있는 날짜 범위 내의 종가 데이터만 추가
+        // (첫 거래일부터 마지막 거래일까지)
+        if (transactions.length > 0) {
+          const firstTxnDate = transactions.reduce(
+            (min, txn) => {
+              const txnDate = new Date(txn.date);
+              return txnDate < min ? txnDate : min;
             },
-          ]);
-          setError(
-            "해당 기간에 표시할 주식 데이터가 없습니다."
+            new Date(transactions[0].date)
           );
-          setLoading(false);
-          return;
+
+          const lastTxnDate = transactions.reduce(
+            (max, txn) => {
+              const txnDate = new Date(txn.date);
+              return txnDate > max ? txnDate : max;
+            },
+            new Date(transactions[0].date)
+          );
+
+          const firstTxnDateStr = firstTxnDate
+            .toISOString()
+            .split("T")[0];
+          const lastTxnDateStr = lastTxnDate
+            .toISOString()
+            .split("T")[0];
+          console.log(
+            `거래 날짜 범위: ${firstTxnDateStr} ~ ${lastTxnDateStr}`
+          );
+
+          filteredData.forEach((data) => {
+            const dataDate = new Date(data.date);
+            // 첫 거래일과 마지막 거래일 사이의 종가 데이터만 추가
+            if (
+              dataDate >= firstTxnDate &&
+              dataDate <= lastTxnDate
+            ) {
+              allDates.add(data.date);
+            }
+          });
         }
 
+        // 날짜 정렬
+        const sortedDates = Array.from(allDates).sort();
+
+        // sortedDates가 비어있어도 거래 데이터는 표시
+        let finalDates = sortedDates;
+        if (
+          sortedDates.length === 0 &&
+          transactions.length > 0
+        ) {
+          // 거래는 있지만 날짜 데이터가 없는 경우 (모든 거래가 미래 날짜인 경우 등)
+          // 거래 날짜만으로 차트 생성
+          const txnDates = new Set();
+          transactions.forEach((txn) => {
+            const txnDate = new Date(txn.date)
+              .toISOString()
+              .split("T")[0];
+            txnDates.add(txnDate);
+          });
+          finalDates = Array.from(txnDates).sort();
+        }
+
+        // 평균가 계산 (모든 거래 포함)
         const cumulativeAveragePrices =
           calculateCumulativeAveragePrices(
             transactions,
-            effectiveStartDate,
-            chartEndDate
+            finalDates.length > 0
+              ? finalDates[0]
+              : effectiveStartDate,
+            finalDates.length > 0
+              ? finalDates[finalDates.length - 1]
+              : chartEndDate
           );
 
-        const combinedData = filteredData.map((item) => {
+        // 모든 날짜에 대한 데이터 생성
+        console.log("Final dates for chart:", finalDates);
+        console.log(
+          "Filtered stock data count:",
+          filteredData.length
+        );
+        console.log(
+          "Filtered data (first 5):",
+          filteredData
+            .slice(0, 5)
+            .map((d) => ({ date: d.date, price: d.price }))
+        );
+
+        const combinedData = finalDates.map((date) => {
+          // 한국시간 거래날짜에서 미국 종가날짜를 구하기 (하루 전)
+          const priceDate = new Date(date);
+          priceDate.setDate(priceDate.getDate() - 1);
+          const priceDateStr = priceDate
+            .toISOString()
+            .split("T")[0];
+
+          console.log(
+            `거래날짜 ${date} → 종가날짜 ${priceDateStr} 찾기`
+          );
+
+          // 주식 가격 데이터 찾기 - 하루 전 날짜로 매칭
+          let priceData = filteredData.find(
+            (item) => item.date === priceDateStr
+          );
+
+          // 날짜에 해당하는 가격 데이터가 없으면 그 이전 날짜의 데이터 사용
+          if (!priceData && filteredData.length > 0) {
+            // filteredData를 날짜순으로 오름차순 정렬
+            const sortedFilteredData = [
+              ...filteredData,
+            ].sort(
+              (a, b) => new Date(a.date) - new Date(b.date)
+            );
+
+            // priceDateStr보다 이전 또는 같은 날짜 중 가장 최근 데이터 찾기
+            for (
+              let i = sortedFilteredData.length - 1;
+              i >= 0;
+              i--
+            ) {
+              if (
+                new Date(sortedFilteredData[i].date) <=
+                new Date(priceDateStr)
+              ) {
+                console.log(
+                  `거래날짜 ${date}에 대해 종가날짜 ${sortedFilteredData[i].date}의 가격 ${sortedFilteredData[i].price} 사용`
+                );
+                priceData = sortedFilteredData[i];
+                break;
+              }
+            }
+          } else if (priceData) {
+            console.log(
+              `거래날짜 ${date}에 대해 종가날짜 ${priceDateStr}의 정확한 가격 ${priceData.price} 찾음`
+            );
+          }
+
+          // 평균가 데이터 찾기
           const averagePriceData =
             cumulativeAveragePrices.find(
-              (avg) => avg.date === item.date
+              (avg) => avg.date === date
             );
+          // 매도 포인트 찾기
           const sellPoint = sellPoints.find(
-            (sell) => sell.date === item.date
+            (sell) => sell.date === date
           );
+
           return {
-            ...item,
+            date,
+            price: priceData ? priceData.price : null,
             averagePrice: averagePriceData
               ? averagePriceData.averagePrice
               : null,
@@ -410,9 +592,6 @@ const StockTrackerComponent = ({
 
         if (combinedData.length === 0) {
           console.warn(
-            "차트 데이터가 없습니다. 시작일과 종료일을 확인하세요."
-          );
-          setError(
             "차트 데이터가 없습니다. 시작일과 종료일을 확인하세요."
           );
         }
@@ -445,15 +624,34 @@ const StockTrackerComponent = ({
 
   if (error) {
     return (
-      <div className="text-red-500 text-center p-4">
-        Error: {error}
+      <div className="text-center p-4">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  // 트랜잭션이 없거나 데이터가 없는 경우
+  if (!stockData || stockData.length === 0) {
+    return (
+      <div className="w-full h-[400px] bg-white p-4 rounded-lg shadow flex flex-col items-center justify-center">
+        <div className="text-6xl mb-4">📊</div>
+        <p className="text-gray-500 mb-2">
+          표시할 데이터가 없습니다
+        </p>
+        <p className="text-sm text-gray-400">
+          거래를 입력하면 차트가 표시됩니다
+        </p>
       </div>
     );
   }
 
   return (
     <div className="p-4">
-      <StockChart data={stockData} ticker={ticker} />
+      <StockChart
+        data={stockData}
+        ticker={ticker}
+        useUSTime={useUSTime}
+      />
     </div>
   );
 };

@@ -25,6 +25,25 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_API_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// 미국시간 설정에 따른 날짜 계산 헬퍼 함수
+const getInitialDates = () => {
+  const todayKR = new Date().toISOString().slice(0, 10);
+  const useUSTime =
+    localStorage.getItem("useUSTime") === "true";
+
+  let displayDate = todayKR;
+  if (useUSTime) {
+    const date = new Date(todayKR);
+    date.setDate(date.getDate() - 1);
+    displayDate = date.toISOString().split("T")[0];
+  }
+
+  return {
+    date: displayDate,
+    actualDate: todayKR,
+  };
+};
+
 const TransactionList = ({
   stockId,
   onAddTransaction,
@@ -40,14 +59,16 @@ const TransactionList = ({
   const [isBuying, setIsBuying] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
   const [stock, setStock] = useState(null);
-  const [transactionInput, setTransactionInput] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    price: "",
-    quantity: "",
-    fee: "",
-    memo: "",
-    manualFeeEdit: false,
-  });
+  const [transactionInput, setTransactionInput] = useState(
+    () => ({
+      ...getInitialDates(),
+      price: "",
+      quantity: "",
+      fee: "",
+      memo: "",
+      manualFeeEdit: false,
+    })
+  );
   const [transactionToDelete, setTransactionToDelete] =
     useState(null);
   const [showSettlementModal, setShowSettlementModal] =
@@ -195,8 +216,13 @@ const TransactionList = ({
       const timestamp = new Date().getTime();
       const price = parseFloat(transactionData.price);
 
+      // actualDate가 있으면 사용, 없으면 date 사용 (미국시간 옵션 처리)
+      const dateToSave =
+        transactionData.actualDate || transactionData.date;
+
       const newTransaction = {
         ...transactionData,
+        date: dateToSave, // 항상 한국시간 기준으로 저장
         id: uuidv4(),
         quantity: newQuantity,
         type,
@@ -370,7 +396,7 @@ const TransactionList = ({
 
   const resetTransactionInput = () => {
     setTransactionInput({
-      date: new Date().toISOString().slice(0, 10),
+      ...getInitialDates(),
       price: "",
       quantity: "",
       fee: "",
@@ -481,6 +507,11 @@ const TransactionList = ({
           <div className="flex justify-between mt-6">
             <button
               onClick={() => {
+                // 매수 버튼 클릭 시 날짜 초기화
+                setTransactionInput((prev) => ({
+                  ...prev,
+                  ...getInitialDates(),
+                }));
                 setIsBuying(true);
                 setIsSelling(false);
               }}
@@ -489,6 +520,11 @@ const TransactionList = ({
             </button>
             <button
               onClick={() => {
+                // 매도 버튼 클릭 시 날짜 초기화
+                setTransactionInput((prev) => ({
+                  ...prev,
+                  ...getInitialDates(),
+                }));
                 setIsSelling(true);
                 setIsBuying(false);
               }}

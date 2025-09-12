@@ -13,6 +13,81 @@ const TransactionForm = ({
   // onWheel 이벤트 핸들러로 스크롤을 방지하는 함수
   const preventScroll = (e) => e.target.blur();
 
+  // 미국시간 표시 옵션 (localStorage에서 불러오기)
+  const [useUSTime, setUseUSTime] = React.useState(() => {
+    const saved = localStorage.getItem("useUSTime");
+    return saved === "true";
+  });
+
+  // 한국시간을 미국 동부시간으로 변환 (EST/EDT)
+  // 미국 장이 열리는 한국시간 오후 11:30을 기준으로 날짜 구분
+  const toUSDate = (dateString) => {
+    if (!dateString) return dateString;
+    const date = new Date(dateString);
+    // 한국과 미국 동부의 시차는 14시간 (서머타임 13시간)
+    // 간단히 하루 전날로 표시
+    date.setDate(date.getDate() - 1);
+    return date.toISOString().split("T")[0];
+  };
+
+  // 미국시간을 한국시간으로 변환
+  const toKRDate = (dateString) => {
+    if (!dateString) return dateString;
+    const date = new Date(dateString);
+    // 하루 뒤로 표시
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().split("T")[0];
+  };
+
+  // localStorage 변경 감지하여 useUSTime 업데이트
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("useUSTime");
+      const newValue = saved === "true";
+      if (newValue !== useUSTime) {
+        setUseUSTime(newValue);
+        // 날짜를 새로운 시간대로 변경
+        const currentDate =
+          transactionInput.date ||
+          new Date().toISOString().split("T")[0];
+        if (newValue) {
+          // 한국시간 → 미국시간
+          const usDate = toUSDate(currentDate);
+          setTransactionInput({
+            ...transactionInput,
+            date: usDate,
+            actualDate: currentDate,
+          });
+        } else {
+          // 미국시간 → 한국시간
+          const krDate = toKRDate(currentDate);
+          setTransactionInput({
+            ...transactionInput,
+            date: krDate,
+            actualDate: krDate,
+          });
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(
+      "useUSTimeChanged",
+      handleStorageChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleStorageChange
+      );
+      window.removeEventListener(
+        "useUSTimeChanged",
+        handleStorageChange
+      );
+    };
+  }, [useUSTime, transactionInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 날짜에 따른 가격 찾기 함수
   const findPriceForDate = (selectedDate) => {
     if (!priceData || priceData.length === 0) return "";
@@ -37,11 +112,17 @@ const TransactionForm = ({
     return closestPrice;
   };
 
+  // 초기 날짜 설정 (미국시간 옵션 반영) - 이미 TransactionList에서 처리되므로 제거
+  // useEffect는 더 이상 필요하지 않음
+
   // 날짜 변경 시 체결가 기본값 설정
   useEffect(() => {
-    if (transactionInput.date && !transactionInput.price) {
+    if (
+      transactionInput.actualDate &&
+      !transactionInput.price
+    ) {
       const suggestedPrice = findPriceForDate(
-        transactionInput.date
+        transactionInput.actualDate // 실제 한국시간 날짜로 가격 조회
       );
       if (suggestedPrice) {
         setTransactionInput((prev) => ({
@@ -50,7 +131,7 @@ const TransactionForm = ({
         }));
       }
     }
-  }, [transactionInput.date]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [transactionInput.actualDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 체결가나 수량이 변경될 때 수수료 자동 계산
   useEffect(() => {
@@ -119,17 +200,30 @@ const TransactionForm = ({
       </h3>
       <div className="space-y-4">
         <div>
-          <label className="block">날짜:</label>
+          <label className="block">
+            날짜{" "}
+            {useUSTime && (
+              <span className="text-sm text-gray-500">
+                (미국 동부시간)
+              </span>
+            )}
+            :
+          </label>
           <input
             type="date"
             value={transactionInput.date}
             onChange={(e) => {
               const newDate = e.target.value;
+              // 실제 데이터 조회를 위한 날짜는 항상 한국시간 기준으로 변환
+              const krDateForData = useUSTime
+                ? toKRDate(newDate)
+                : newDate;
               const suggestedPrice =
-                findPriceForDate(newDate);
+                findPriceForDate(krDateForData);
               setTransactionInput({
                 ...transactionInput,
-                date: newDate,
+                date: newDate, // 표시용 날짜는 그대로 저장
+                actualDate: krDateForData, // 실제 데이터 저장용 날짜
                 price:
                   suggestedPrice || transactionInput.price,
                 manualFeeEdit: false,
@@ -143,11 +237,11 @@ const TransactionForm = ({
             체결가:
             {priceData &&
               priceData.length > 0 &&
-              transactionInput.date && (
+              transactionInput.actualDate && (
                 <span className="text-sm text-gray-500 ml-2">
                   (참고가:{" "}
                   {findPriceForDate(
-                    transactionInput.date
+                    transactionInput.actualDate
                   ) || "데이터 없음"}
                   )
                 </span>
@@ -166,9 +260,10 @@ const TransactionForm = ({
             onWheel={preventScroll} // 마우스 휠 방지 추가
             className="w-full p-2 border rounded"
             placeholder={
-              findPriceForDate(transactionInput.date)
+              transactionInput.actualDate &&
+              findPriceForDate(transactionInput.actualDate)
                 ? `참고: ${findPriceForDate(
-                    transactionInput.date
+                    transactionInput.actualDate
                   )}`
                 : "체결가 입력"
             }

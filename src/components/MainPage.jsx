@@ -88,7 +88,7 @@ const MainPage = () => {
       <h1 className="text-3xl font-bold mb-6 text-center">
         무한매수 도우미{" "}
         <span className="text-gray-500 text-sm ml-2">
-          updated 25.09.10.
+          updated 25.09.11.
         </span>
       </h1>
       <div className="p-4 mb-6 bg-gray-100 rounded-lg shadow-md text-center">

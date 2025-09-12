@@ -38,6 +38,20 @@ const StockDetail = () => {
     useState(null);
   const [lastSellDate, setLastSellDate] = useState(null);
 
+  // 미국시간 표시 옵션 (localStorage에서 불러오기)
+  const [useUSTime, setUseUSTime] = useState(() => {
+    const saved = localStorage.getItem("useUSTime");
+    return saved === "true";
+  });
+
+  // 체크박스 변경 처리
+  const handleTimeToggle = (checked) => {
+    setUseUSTime(checked);
+    localStorage.setItem("useUSTime", checked.toString());
+    // 다른 컴포넌트들이 변경을 감지할 수 있도록 이벤트 발생
+    window.dispatchEvent(new Event("useUSTimeChanged"));
+  };
+
   // NaN 방지 안전 함수들
   const safeDiv = (a, b) => {
     if (!isFinite(a) || !isFinite(b) || b === 0) return 0;
@@ -337,9 +351,22 @@ const StockDetail = () => {
         </p>
       </div>
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold">
-          {stock.name} (v{stock.version})
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-2xl font-semibold">
+            {stock.name} (v{stock.version})
+          </h2>
+          <label className="flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={useUSTime}
+              onChange={(e) =>
+                handleTimeToggle(e.target.checked)
+              }
+              className="w-4 h-4"
+            />
+            <span>미국시간 표시</span>
+          </label>
+        </div>
         <p>총 투자 금액: ${stock.investment.toFixed(2)}</p>
         <p>분할 횟수: {stock.divisionCount}회</p>
         <p>
@@ -370,24 +397,39 @@ const StockDetail = () => {
       </div>
 
       <div className="mb-6">
-        {stock.name &&
-        earliestTransactionDate &&
-        stockTransactions ? (
-          <StockTrackerComponent
-            ticker={stock.name}
-            startDate={earliestTransactionDate}
-            transactions={stockTransactions}
-            endDate={
-              stock.isSettled
-                ? lastSellDate
-                  ? lastSellDate.toISOString().split("T")[0]
+        {stock.name ? (
+          stockTransactions &&
+          stockTransactions.length > 0 ? (
+            <StockTrackerComponent
+              ticker={stock.name}
+              startDate={earliestTransactionDate}
+              transactions={stockTransactions}
+              endDate={
+                stock.isSettled
+                  ? lastSellDate
+                    ? lastSellDate
+                        .toISOString()
+                        .split("T")[0]
+                    : null
                   : null
-                : null
-            }
-          />
+              }
+              useUSTime={useUSTime}
+            />
+          ) : (
+            // 거래 데이터가 없을 때
+            <div className="w-full h-[400px] bg-white p-4 rounded-lg shadow flex flex-col items-center justify-center">
+              <div className="text-6xl mb-4">📊</div>
+              <p className="text-gray-500 mb-2">
+                아직 거래 내역이 없습니다
+              </p>
+              <p className="text-sm text-gray-400">
+                매수 또는 매도를 입력하면 차트가 표시됩니다
+              </p>
+            </div>
+          )
         ) : (
+          // 종목 정보를 로딩 중일 때
           <div className="flex justify-center items-center space-x-2">
-            {/* 회전하는 동그라미 로딩 애니메이션 */}
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             <p>로딩 중...</p>
           </div>
