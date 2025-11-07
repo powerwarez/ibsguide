@@ -173,7 +173,7 @@ const StockTrackerComponent = ({
     return (
       koreaTime.getHours() > 7 ||
       (koreaTime.getHours() === 7 &&
-        koreaTime.getMinutes() >= 5)
+        koreaTime.getMinutes() >= 35)
     );
   };
 
@@ -200,7 +200,7 @@ const StockTrackerComponent = ({
       ) ||
       (isKoreaMarketOpen() &&
         latestData[0].updated_at <
-          koreanTime.setHours(7, 5, 0, 0))
+          koreanTime.setHours(7, 35, 0, 0))
     );
   };
 

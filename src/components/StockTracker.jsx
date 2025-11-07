@@ -68,7 +68,7 @@ const StockTracker = () => {
     return (
       koreaTime.getHours() > 7 ||
       (koreaTime.getHours() === 7 &&
-        koreaTime.getMinutes() >= 5)
+        koreaTime.getMinutes() >= 35)
     );
   };
 
@@ -219,7 +219,7 @@ const StockTracker = () => {
           ) ||
           (isKoreaMarketOpen() &&
             latestData[0].updated_at <
-              koreanTime.setHours(7, 5, 0, 0));
+              koreanTime.setHours(7, 35, 0, 0));
 
         let stockPrices;
 
@@ -297,7 +297,7 @@ const StockTracker = () => {
           전일 종가 데이터를 불러오고 있습니다...
         </div>
         <div className="text-sm text-gray-500">
-          전일 종가는 아침 7시 5분 이후에 업데이트 됩니다.
+          전일 종가는 아침 7시 35분 이후에 업데이트 됩니다.
         </div>
       </div>
     );
