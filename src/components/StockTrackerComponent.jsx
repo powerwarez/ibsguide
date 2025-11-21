@@ -12,6 +12,7 @@ const StockTrackerComponent = ({
   transactions,
   endDate,
   useUSTime = false,
+  splitRatio = 1,
 }) => {
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -380,6 +381,21 @@ const StockTrackerComponent = ({
               new Date(data.date) >=
               new Date(effectiveStartDate)
           ) || [];
+
+        // 분할 비율이 1이 아닌 경우 가격 데이터 조정
+        if (splitRatio !== 1) {
+          console.log(
+            `분할 비율 ${splitRatio} 적용 - 가격 데이터 조정`
+          );
+          filteredData = filteredData.map((data) => ({
+            ...data,
+            price: data.price
+              ? (
+                  parseFloat(data.price) / splitRatio
+                ).toFixed(2)
+              : null,
+          }));
+        }
 
         // 종료일이 제공된 경우(정산된 경우) 종료일까지만 표시 - 조정된 종료일 사용
         if (effectiveEndDate) {

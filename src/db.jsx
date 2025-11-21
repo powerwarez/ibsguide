@@ -45,6 +45,7 @@ export async function saveStock(stock) {
       quantity: 0,
       averagePrice: 0,
       isSettled: false, // 초기 정산 상태 설정
+      splitRatio: 1, // 누적 분할 비율 (기본값 1)
       ...stock,
     };
     await db.add("stocks", stockWithId);

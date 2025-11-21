@@ -332,6 +332,13 @@ const StockDetail = () => {
         });
       }
 
+      // 누적 분할 비율 업데이트
+      const currentSplitRatio = stock.splitRatio || 1;
+      const newSplitRatio = currentSplitRatio * splitRatio;
+      await updateStock(id, {
+        splitRatio: newSplitRatio,
+      });
+
       // 모달 닫기
       setIsSplitModalOpen(false);
 
@@ -339,13 +346,13 @@ const StockDetail = () => {
       await loadStockData();
 
       alert(
-        `${splitRatio}대1 분할이 완료되었습니다.\n평균가: $${averagePrice.toFixed(
+        `1대${splitRatio} 분할이 완료되었습니다.\n평균가: $${averagePrice.toFixed(
           2
         )} → $${(averagePrice / splitRatio).toFixed(
           2
         )}\n수량: ${totalQuantity} → ${Math.floor(
           totalQuantity * splitRatio
-        )}`
+        )}\n누적 분할 비율: ${newSplitRatio.toFixed(2)}`
       );
     } catch (error) {
       console.error("분할 처리 중 오류:", error);
@@ -465,6 +472,7 @@ const StockDetail = () => {
                   : null
               }
               useUSTime={useUSTime}
+              splitRatio={stock.splitRatio || 1}
             />
           ) : (
             // 거래 데이터가 없을 때
