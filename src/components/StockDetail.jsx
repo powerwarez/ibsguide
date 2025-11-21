@@ -8,9 +8,11 @@ import {
   getStocks,
   getTransactionsByStockId,
   updateStock,
+  updateTransaction,
 } from "../db";
 import TransactionList from "./TransactionList";
 import StockTrackerComponent from "./StockTrackerComponent";
+import StockSplitModal from "./StockSplitModal";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
@@ -37,6 +39,8 @@ const StockDetail = () => {
   const [previousClosePrice, setPreviousClosePrice] =
     useState(null);
   const [lastSellDate, setLastSellDate] = useState(null);
+  const [isSplitModalOpen, setIsSplitModalOpen] =
+    useState(false);
 
   // 미국시간 표시 옵션 (localStorage에서 불러오기)
   const [useUSTime, setUseUSTime] = useState(() => {
@@ -318,6 +322,42 @@ const StockDetail = () => {
     loadStockData();
   };
 
+  const handleStockSplit = async (splitRatio) => {
+    try {
+      // 모든 거래 내역을 가져와서 분할 적용
+      for (const txn of stockTransactions) {
+        await updateTransaction(txn.id, {
+          price: txn.price / splitRatio,
+          quantity: Math.floor(txn.quantity * splitRatio),
+        });
+      }
+
+      // 모달 닫기
+      setIsSplitModalOpen(false);
+
+      // 데이터 다시 로드
+      await loadStockData();
+
+      alert(
+        `${splitRatio}대1 분할이 완료되었습니다.\n평균가: $${averagePrice.toFixed(
+          2
+        )} → $${(averagePrice / splitRatio).toFixed(
+          2
+        )}\n수량: ${totalQuantity} → ${Math.floor(
+          totalQuantity * splitRatio
+        )}`
+      );
+    } catch (error) {
+      console.error("분할 처리 중 오류:", error);
+      alert("분할 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 티커 이름에서 정산 정보 제거하여 기본 티커만 추출
+  const getBaseTicker = (tickerName) => {
+    return tickerName.split("(")[0];
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">
       <div className="flex items-center mb-6">
@@ -395,6 +435,17 @@ const StockDetail = () => {
           <p>복리율: {stock.compoundInterestRate * 100}%</p>
         )}
       </div>
+
+      {/* 분할하기 버튼 - TQQQ 티커일 때만 표시 */}
+      {getBaseTicker(stock.name) === "TQQQ" && (
+        <div className="mb-4 flex justify-center">
+          <button
+            onClick={() => setIsSplitModalOpen(true)}
+            className="px-6 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors font-semibold shadow-md">
+            📊 분할하기
+          </button>
+        </div>
+      )}
 
       <div className="mb-6">
         {stock.name ? (
@@ -719,6 +770,15 @@ const StockDetail = () => {
         onAddTransaction={handleTransactionUpdate}
         onDeleteTransaction={handleTransactionUpdate}
         onEarliestDateChange={setEarliestTransactionDate}
+      />
+
+      {/* 분할 모달 */}
+      <StockSplitModal
+        isOpen={isSplitModalOpen}
+        onClose={() => setIsSplitModalOpen(false)}
+        onConfirm={handleStockSplit}
+        currentAveragePrice={averagePrice}
+        currentQuantity={totalQuantity}
       />
     </div>
   );

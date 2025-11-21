@@ -136,3 +136,17 @@ export async function getOriginalInvestment(stockId) {
   const db = await dbPromise;
   return await db.get("originalInvestment", stockId);
 }
+
+// 특정 거래 내역 업데이트
+export async function updateTransaction(transactionId, updatedData) {
+  const db = await dbPromise;
+  const tx = db.transaction("transactions", "readwrite");
+  const store = tx.objectStore("transactions");
+
+  const transaction = await store.get(transactionId);
+  if (transaction) {
+    const updatedTransaction = { ...transaction, ...updatedData };
+    await store.put(updatedTransaction);
+  }
+  await tx.done;
+}
