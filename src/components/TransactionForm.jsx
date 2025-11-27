@@ -109,6 +109,10 @@ const TransactionForm = ({
       }
     }
 
+    // 소수점 두 자리까지 반올림하여 반환
+    if (closestPrice !== "" && closestPrice !== null) {
+      return parseFloat(parseFloat(closestPrice).toFixed(2));
+    }
     return closestPrice;
   };
 

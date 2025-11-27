@@ -48,12 +48,29 @@ const StockDetail = () => {
     return saved === "true";
   });
 
+  // 투자금액 비례 추가매수 옵션 (localStorage에서 불러오기)
+  const [proportionalBuy, setProportionalBuy] = useState(
+    () => {
+      const saved = localStorage.getItem("proportionalBuy");
+      return saved === "true";
+    }
+  );
+
   // 체크박스 변경 처리
   const handleTimeToggle = (checked) => {
     setUseUSTime(checked);
     localStorage.setItem("useUSTime", checked.toString());
     // 다른 컴포넌트들이 변경을 감지할 수 있도록 이벤트 발생
     window.dispatchEvent(new Event("useUSTimeChanged"));
+  };
+
+  // 비례 매수 체크박스 변경 처리
+  const handleProportionalBuyToggle = (checked) => {
+    setProportionalBuy(checked);
+    localStorage.setItem(
+      "proportionalBuy",
+      checked.toString()
+    );
   };
 
   // NaN 방지 안전 함수들
@@ -402,17 +419,32 @@ const StockDetail = () => {
           <h2 className="text-2xl font-semibold">
             {stock.name} (v{stock.version})
           </h2>
-          <label className="flex items-center space-x-2 text-sm">
-            <input
-              type="checkbox"
-              checked={useUSTime}
-              onChange={(e) =>
-                handleTimeToggle(e.target.checked)
-              }
-              className="w-4 h-4"
-            />
-            <span>미국시간 표시</span>
-          </label>
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="checkbox"
+                checked={proportionalBuy}
+                onChange={(e) =>
+                  handleProportionalBuyToggle(
+                    e.target.checked
+                  )
+                }
+                className="w-4 h-4"
+              />
+              <span>투자금액에 비례</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="checkbox"
+                checked={useUSTime}
+                onChange={(e) =>
+                  handleTimeToggle(e.target.checked)
+                }
+                className="w-4 h-4"
+              />
+              <span>미국시간 표시</span>
+            </label>
+          </div>
         </div>
         <p>총 투자 금액: ${stock.investment.toFixed(2)}</p>
         <p>분할 횟수: {stock.divisionCount}회</p>
@@ -591,6 +623,11 @@ const StockDetail = () => {
                 <br />
                 <h3 style={{ color: "red" }}>
                   하락시 추가 LOC매수
+                  {proportionalBuy && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (투자금액 비례)
+                    </span>
+                  )}
                 </h3>
                 {(() => {
                   const results = [];
@@ -611,9 +648,22 @@ const StockDetail = () => {
                     ) - halfbuyquantity
                   );
 
+                  // 기본 매수 수량 계산
+                  const baseQuantity =
+                    aver_buyquantity + halfbuyquantity;
+                  // 비례 모드일 때 추가 수량 단위 (기본 수량의 2%, 최소 1개)
+                  const additionalPerStep = proportionalBuy
+                    ? Math.max(
+                        1,
+                        Math.ceil(baseQuantity * 0.02)
+                      )
+                    : 1;
+
                   for (let i = 1; i <= 4; i++) {
+                    const additionalQty =
+                      additionalPerStep * i;
                     const totalbuy = safeMath(
-                      aver_buyquantity + halfbuyquantity + i
+                      baseQuantity + additionalQty
                     );
                     const pricePerShare = safeDiv(
                       stock.perTradeAmount,
@@ -621,8 +671,8 @@ const StockDetail = () => {
                     );
                     results.push(
                       <p key={i}>
-                        ${formatSafeValue(pricePerShare)} X
-                        1개
+                        ${formatSafeValue(pricePerShare)} X{" "}
+                        {additionalQty}개
                       </p>
                     );
                   }
@@ -685,6 +735,11 @@ const StockDetail = () => {
                 <br />
                 <h3 style={{ color: "red" }}>
                   하락시 추가 LOC매수
+                  {proportionalBuy && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (투자금액 비례)
+                    </span>
+                  )}
                 </h3>
                 {(() => {
                   const results = [];
@@ -692,14 +747,23 @@ const StockDetail = () => {
                     averagePrice * (1 + perstar / 100) -
                       0.01
                   );
-                  for (let i = 1; i <= 4; i++) {
-                    const totalbuy = safeMath(
-                      safeFloor(
-                        safeDiv(
-                          stock.perTradeAmount,
-                          starPrice
-                        ) + i
+                  // 기본 매수 수량 계산
+                  const baseQuantity = safeFloor(
+                    safeDiv(stock.perTradeAmount, starPrice)
+                  );
+                  // 비례 모드일 때 추가 수량 단위 (기본 수량의 2%, 최소 1개)
+                  const additionalPerStep = proportionalBuy
+                    ? Math.max(
+                        1,
+                        Math.ceil(baseQuantity * 0.02)
                       )
+                    : 1;
+
+                  for (let i = 1; i <= 4; i++) {
+                    const additionalQty =
+                      additionalPerStep * i;
+                    const totalbuy = safeMath(
+                      baseQuantity + additionalQty
                     );
                     const pricePerShare = safeDiv(
                       stock.perTradeAmount,
@@ -707,8 +771,8 @@ const StockDetail = () => {
                     );
                     results.push(
                       <p key={i}>
-                        ${formatSafeValue(pricePerShare)} X
-                        1개
+                        ${formatSafeValue(pricePerShare)} X{" "}
+                        {additionalQty}개
                       </p>
                     );
                   }
