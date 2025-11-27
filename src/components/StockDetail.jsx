@@ -660,10 +660,10 @@ const StockDetail = () => {
                     : 1;
 
                   for (let i = 1; i <= 4; i++) {
-                    const additionalQty =
+                    const cumulativeQty =
                       additionalPerStep * i;
                     const totalbuy = safeMath(
-                      baseQuantity + additionalQty
+                      baseQuantity + cumulativeQty
                     );
                     const pricePerShare = safeDiv(
                       stock.perTradeAmount,
@@ -672,7 +672,7 @@ const StockDetail = () => {
                     results.push(
                       <p key={i}>
                         ${formatSafeValue(pricePerShare)} X{" "}
-                        {additionalQty}개
+                        {additionalPerStep}개
                       </p>
                     );
                   }
@@ -760,10 +760,10 @@ const StockDetail = () => {
                     : 1;
 
                   for (let i = 1; i <= 4; i++) {
-                    const additionalQty =
+                    const cumulativeQty =
                       additionalPerStep * i;
                     const totalbuy = safeMath(
-                      baseQuantity + additionalQty
+                      baseQuantity + cumulativeQty
                     );
                     const pricePerShare = safeDiv(
                       stock.perTradeAmount,
@@ -772,7 +772,7 @@ const StockDetail = () => {
                     results.push(
                       <p key={i}>
                         ${formatSafeValue(pricePerShare)} X{" "}
-                        {additionalQty}개
+                        {additionalPerStep}개
                       </p>
                     );
                   }
